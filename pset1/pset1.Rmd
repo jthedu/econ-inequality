@@ -1,0 +1,17 @@
+---
+title: "Inequality PSet 1 - Question # 6"
+author: "JDu"
+date: "4/10/2021"
+output: pdf_document
+---
+
+# Question #6
+
+```{r}
+```
+
+
+```{r}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
