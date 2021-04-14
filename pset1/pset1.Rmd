@@ -48,31 +48,24 @@ q1 <- q1 %>%
          diff_earnPOW = lnearnPOW - lagearnPOW,
          diff_dSSI = lndSSI - lagdSSI) 
   
-q1_oof <- q1 %>%
-  group_by(fips) %>%
-  mutate(lagpay = lag(lnpay, n = 1),
-         lagpop = lag(lnpop, n = 1),
-         lagearnPOW = lag(lnearnPOW, n = 1),
-         lagdSSI = lag(lndSSI, n = 1)) %>%
-  mutate(diff_pay = lnpay - lagpay,
-         diff_pop = lnpop - lagpop,
-         diff_earnPOW = lnearnPOW - lagearnPOW,
-         diff_dSSI = lndSSI - lagdSSI) 
-
 # 6d(i).C: construct var that is fraction of county earnings from manufacturing in 1969
-q1 %>%
+q1 <- 
+  q1 %>%
   filter(year == 1969) %>%
-  #pull(man)
-  mutate(man_1969 = man/earnPOW)
+  mutate(frac_earn = man/earnPOW) %>%
+  select(frac_earn, fips) %>%
+  left_join(q1, by = "fips")
 
 ### ASK ELLIE: fraction of earnings - is it saying "find the fraction of county earnings in every yr compared to the 1969 value of manufacturing)?
 # if so, do it like this??
-man_value_1969 <- 
+
+# PAUSE HERE
+#man_value_1969 <- 
   q1 %>%
   filter(year == 1969) %>%
   select(man, fips) 
 
-q1 <- 
+#q1 <- 
 man_value_1969 %>%
   left_join(q1, by = "fips") %>%
   mutate(frac_earn = man.x/earnPOW) 
@@ -94,9 +87,20 @@ q1 <- q1 %>%
   mutate(ln_coalres = log(coalres)) %>%
   mutate(valchange_cr = 
            if_else(coalres > 0,
-                   diff_coalprice * ln_coalres, 0)) 
+                   diff_coalprice * ln_coalres, 0)) %>%
+  mutate(valchange_crlag1 = lag(valchange_cr, n = 1),
+         valchange_crlag2 = lag(valchange_cr, n = 2))
 
-
+#doesn't make a diff when you do if_else - most likely is 1969?
+# NOPE DOESN'T MAKE A DIFF
+q1_try <- q1 %>%
+  group_by(fips) %>%
+  mutate(ln_coalprice = log(coalprice),
+         lag_coalprice = lag(ln_coalprice, n = 1),
+         diff_coalprice = ln_coalprice - lag_coalprice) %>%
+  mutate(ln_coalres = if_else(coalres > 0,
+                   log(coalres), 0)) %>%
+  mutate(valchange_cr = diff_coalprice * ln_coalres, 0) 
 
 q1 %>%
   filter(valchange_cr < 0)
@@ -123,23 +127,24 @@ ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + ms
 
 ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+ols_di_c <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+ols_di_nc <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
+#regular SE
 get_regression_table(ols_ssi_c)
 get_regression_table(ols_ssi_nc)
-get_regression_table(ols_di_c)
+get_regression_table(ols_di_c) # getting something weird here!!! DI W/ CONTROL VAR
 get_regression_table(ols_di_nc)
-
-# trying to get robust SE
-get_regression_table(ols_ssi_c) #regular SE
-
 
 ## which HC# should i use? doesn't seem to make a diff...but they say Stata's results same as "HC1"
 coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC1")) %>%
   broom::tidy() #THIS WORKS! do same for rest
-## getting pretty diff robust SEs...off by a factor of 10 (paper says SE of 1.58) - maybe Ellie's right & # of rows should be ~150
+## getting pretty diff robust SEs...off by a factor of 10 (paper says SE of 1.58) - maybe Ellie's right & # of rows should be ~150. 
+#well changing to 1969 did help for estimates
+
+coeftest(ols_di_c, vcov = vcovHC(ols_di_c, type = "HC1")) %>%
+  broom::tidy()
 ```
 
 NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnPOW aka log diff in county earnings, right?)
@@ -161,14 +166,31 @@ interpret the main estimates
 
 ```{r}
 #https://cran.r-project.org/web/packages/ivreg/ivreg.pdf
+#https://www.econometrics-with-r.org/12-2-TGIVRM.html
 
-iv_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr, data = q1)
+# this may be wrong...getting slightly off estimates
+iv_ssi_c <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+iv_ssi_nc <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state), data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+iv_di_c <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+
+iv_di_nc <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state), data = q1)
+
+## getting slightly off coefficients
+coeftest(iv_ssi_c, vcov = vcovHC(iv_ssi_c, type = "HC1")) %>%
+  broom::tidy() 
+
+coeftest(iv_di_c, vcov = vcovHC(iv_di_c, type = "HC1")) %>%
+  broom::tidy() # pretty good estimate, but std error is still off
+
+coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
+  broom::tidy() 
+
+coeftest(iv_di_nc, vcov = vcovHC(iv_di_nc, type = "HC1")) %>%
+  broom::tidy() 
+
 
 ```
 
@@ -179,6 +201,33 @@ ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data
 ## DO WE NEED TO HAVE STANDARD ERRORS AS PARENTHESES OR CAN WE HAVE IT AS A SEPARATE COLUMN?
 
 #lots of kable & bind_rows. need to mutate a column w/ descriptor info on which regression (e.g. ols, control/nc) the coeff corresponds to
+
+sum_table <- function(reg_model, reg_name) {
+  coeftest(reg_model, vcov = vcovHC(reg_model, type = "HC1")) %>%
+    tidy()  %>%
+    mutate(reg = reg_name) %>%
+    filter(term == "diff_earnPOW") %>%
+    select(reg, estimate, std.error, p.value) %>%
+    mutate(
+      sig_1perc = if_else(p.value < 0.01, "yes", "no"),
+      sig_5perc = if_else(p.value < 0.05, "yes", "no"),
+      sig_10perc = if_else(p.value < 0.1, "yes", "no"))
+}
+
+sum_table(iv_di_nc, "IV Disability - No Control")
+# bind_rows(sum_table(iv, ""))
+# then bind_rows
+#could map2
+map_xinput <- c("iv_di_nc", "iv_di_c", "iv_ssi_c", "iv_ssi_nc")
+map_yinput <- c("IV Disability - No Control", "IV Disability - Control", "IV SSI - No Control", "IV SSI - Control")
+
+map2(map_xinput, map_yinput, .f = sum_table)
+
+# either manually add significance info or do if_else statements
+# mutate(sig_1% = if_else(p.value < 0.01, "yes", "no"),
+#sig_5% = if_else(p.value < 0.05, "yes", "no"),
+#sig_10% = if_else(p.value < 0.1, "yes", "no"))
+
 
 ```
 
