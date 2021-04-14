@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ## Load necessary libraries
-```{r}
+```{r, message = FALSE}
 library(tidyverse)
 library(lubridate)
 library(lfe)
@@ -14,6 +14,7 @@ library(stats)
 #library(tsibble)
 library(ivreg)
 library(broom)
+library(stargazer)
 
 theme_set(theme_minimal())
 ```
@@ -34,7 +35,6 @@ q1 <- q1 %>%
          lnpop = log(pop),
          lnearnPOW = log(earnPOW), # county earnings
          lndSSI = log(dSSI)) # SSI payments 
-# BE CAREFUL - MAYBE SHOULD KEEP ORIGINAL PAY VAR & NOT OVERWRITE W/ LOG VERSIONS?
 
 # 6d(i).B: construct log diff
 q1 <- q1 %>%
@@ -55,20 +55,6 @@ q1 <-
   mutate(frac_earn = man/earnPOW) %>%
   select(frac_earn, fips) %>%
   left_join(q1, by = "fips")
-
-### ASK ELLIE: fraction of earnings - is it saying "find the fraction of county earnings in every yr compared to the 1969 value of manufacturing)?
-# if so, do it like this??
-
-# PAUSE HERE
-#man_value_1969 <- 
-  q1 %>%
-  filter(year == 1969) %>%
-  select(man, fips) 
-
-#q1 <- 
-man_value_1969 %>%
-  left_join(q1, by = "fips") %>%
-  mutate(frac_earn = man.x/earnPOW) 
 ```
 
 ## Question 6d(ii): Construct the instruments
@@ -123,6 +109,8 @@ library(sandwich)
 # DOES YEAR*STATE qualify as control var
 # DO I NEED FELM CUZ USING YEAR*STATE?
 
+#USE FELM!!!
+
 ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
 ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
@@ -145,6 +133,7 @@ coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC1")) %>%
 
 coeftest(ols_di_c, vcov = vcovHC(ols_di_c, type = "HC1")) %>%
   broom::tidy()
+
 ```
 
 NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnPOW aka log diff in county earnings, right?)
@@ -169,7 +158,8 @@ interpret the main estimates
 #https://www.econometrics-with-r.org/12-2-TGIVRM.html
 
 # this may be wrong...getting slightly off estimates
-iv_ssi_c <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+iv_ssi_c <- ivreg(diff_dSSI ~ 
+                    diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
 
 iv_ssi_nc <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state), data = q1)
@@ -215,12 +205,19 @@ sum_table <- function(reg_model, reg_name) {
 }
 
 sum_table(iv_di_nc, "IV Disability - No Control")
+
+# manipulate manually after exporting to Excel
+
 # bind_rows(sum_table(iv, ""))
 
 # either manually add significance info or do if_else statements
 # mutate(sig_1% = if_else(p.value < 0.01, "yes", "no"),
 #sig_5% = if_else(p.value < 0.05, "yes", "no"),
 #sig_10% = if_else(p.value < 0.1, "yes", "no"))
+
+#MAYBE
+#stargazer(iv_di_nc, iv_di_c, title="Results", align=TRUE)
+
 
 
 ```
