@@ -216,12 +216,6 @@ sum_table <- function(reg_model, reg_name) {
 
 sum_table(iv_di_nc, "IV Disability - No Control")
 # bind_rows(sum_table(iv, ""))
-# then bind_rows
-#could map2
-map_xinput <- c("iv_di_nc", "iv_di_c", "iv_ssi_c", "iv_ssi_nc")
-map_yinput <- c("IV Disability - No Control", "IV Disability - Control", "IV SSI - No Control", "IV SSI - Control")
-
-map2(map_xinput, map_yinput, .f = sum_table)
 
 # either manually add significance info or do if_else statements
 # mutate(sig_1% = if_else(p.value < 0.01, "yes", "no"),
