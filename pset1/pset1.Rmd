@@ -11,7 +11,9 @@ library(tidyverse)
 library(lubridate)
 library(lfe)
 library(stats)
-library(tsibble)
+#library(tsibble)
+library(ivreg)
+library(broom)
 
 theme_set(theme_minimal())
 ```
@@ -28,26 +30,34 @@ q1 <- read_csv("./DataExercise_IV/pset_iv_data.csv") %>%
 
 # 6d(i).A: transform var by taking nat logs
 q1 <- q1 %>%
-  mutate(pay = log(pay),
-         pop = log(pop),
-         earnPOW = log(earnPOW), # county earnings
-         dSSI = log(dSSI)) # SSI payments 
+  mutate(lnpay = log(pay),
+         lnpop = log(pop),
+         lnearnPOW = log(earnPOW), # county earnings
+         lndSSI = log(dSSI)) # SSI payments 
 # BE CAREFUL - MAYBE SHOULD KEEP ORIGINAL PAY VAR & NOT OVERWRITE W/ LOG VERSIONS?
 
 # 6d(i).B: construct log diff
 q1 <- q1 %>%
-  mutate(lagpay = lag(pay, n = 1),
-         lagpop = lag(pop, n = 1),
-         lagearnPOW = lag(earnPOW, n = 1),
-         lagdSSI = lag(dSSI, n = 1)) %>%
-  mutate(diff_pay = pay - lagpay,
-         diff_pop = pop - lagpop,
-         diff_earnPOW = earnPOW - lagearnPOW,
-         diff_dSSI = dSSI - lagdSSI)
-  #as_tsibble(key = fips, index = year) 
+  group_by(fips) %>% #DELETE HERE IF NEEDED
+  mutate(lagpay = lag(lnpay, n = 1),
+         lagpop = lag(lnpop, n = 1),
+         lagearnPOW = lag(lnearnPOW, n = 1),
+         lagdSSI = lag(lndSSI, n = 1)) %>%
+  mutate(diff_pay = lnpay - lagpay,
+         diff_pop = lnpop - lagpop,
+         diff_earnPOW = lnearnPOW - lagearnPOW,
+         diff_dSSI = lndSSI - lagdSSI) 
   
-  #as.ts(pay, pop, earnPOW, dSSI) %>%
-  #mutate(pay_lag1 = lag(pay, +1))
+q1_oof <- q1 %>%
+  group_by(fips) %>%
+  mutate(lagpay = lag(lnpay, n = 1),
+         lagpop = lag(lnpop, n = 1),
+         lagearnPOW = lag(lnearnPOW, n = 1),
+         lagdSSI = lag(lndSSI, n = 1)) %>%
+  mutate(diff_pay = lnpay - lagpay,
+         diff_pop = lnpop - lagpop,
+         diff_earnPOW = lnearnPOW - lagearnPOW,
+         diff_dSSI = lndSSI - lagdSSI) 
 
 # 6d(i).C: construct var that is fraction of county earnings from manufacturing in 1969
 q1 %>%
@@ -57,10 +67,15 @@ q1 %>%
 
 ### ASK ELLIE: fraction of earnings - is it saying "find the fraction of county earnings in every yr compared to the 1969 value of manufacturing)?
 # if so, do it like this??
-#man_value_1969 <- 
+man_value_1969 <- 
   q1 %>%
   filter(year == 1969) %>%
-  pull(man)
+  select(man, fips) 
+
+q1 <- 
+man_value_1969 %>%
+  left_join(q1, by = "fips") %>%
+  mutate(frac_earn = man.x/earnPOW) 
 ```
 
 ## Question 6d(ii): Construct the instruments
@@ -72,6 +87,7 @@ q1 <- q1 %>%
 
 # construct change in coal reserves
 q1 <- q1 %>%
+  group_by(fips) %>%
   mutate(ln_coalprice = log(coalprice),
          lag_coalprice = lag(ln_coalprice, n = 1),
          diff_coalprice = ln_coalprice - lag_coalprice) %>%
@@ -79,14 +95,46 @@ q1 <- q1 %>%
   mutate(valchange_cr = 
            if_else(coalres > 0,
                    diff_coalprice * ln_coalres, 0)) 
+
+
+
 q1 %>%
-  filter(coalres > 0)
+  filter(valchange_cr < 0)
 ```
 
 
-## Question 6d(i): Construct the outcome variables
+## Question 6d(iii): Construct the outcome variables
 
 ```{r}
+library(moderndive) #https://cran.r-project.org/web/packages/moderndive/vignettes/why-moderndive.html
+library(lfe) #felm - multiple group fixed effs? - 
+#https://cran.r-project.org/web/packages/lfe/lfe.pdf (pg. 19)
+#library(robustbase) 
+#use lmrob just like lm - https://www.brodrigues.co/blog/2018-07-08-rob_stderr/
+library(lmtest)
+library(sandwich)
+# https://www.r-econometrics.com/methods/hcrobusterrors/
+
+#other qs: 1969 q, why ellie & i get diff rows for coal res change in value
+# DOES YEAR*FIPS qualify as control var
+
+ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips + msa + lnpop + diff_pop + frac_earn, data = q1)
+
+ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + year*fips, data = q1)
+
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips + msa + lnpop + diff_pop + frac_earn, data = q1)
+
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips, data = q1)
+
+get_regression_table(ols_ssi_c)
+get_regression_table(ols_ssi_nc)
+get_regression_table(ols_di_c)
+get_regression_table(ols_di_nc)
+
+# trying to get robust SE
+get_regression_table(ols_ssi_c) #regular SE
+coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC0")) %>%
+  broom::tidy() #THIS WORKS! do same for rest
 ```
 
 
