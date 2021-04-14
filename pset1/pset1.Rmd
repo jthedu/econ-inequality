@@ -105,12 +105,6 @@ library(lmtest)
 library(sandwich)
 # https://www.r-econometrics.com/methods/hcrobusterrors/
 
-#other qs: 1969 q, why ellie & i get diff rows for coal res change in value
-# DOES YEAR*STATE qualify as control var
-# DO I NEED FELM CUZ USING YEAR*STATE?
-
-#USE FELM!!!
-
 ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
 ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
@@ -119,20 +113,18 @@ ols_di_c <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa 
 
 ols_di_nc <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
-#regular SE
-get_regression_table(ols_ssi_c)
-get_regression_table(ols_ssi_nc)
-get_regression_table(ols_di_c) # getting something weird here!!! DI W/ CONTROL VAR
-get_regression_table(ols_di_nc)
-
-## which HC# should i use? doesn't seem to make a diff...but they say Stata's results same as "HC1"
+# find estimates & robust SEs
 coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC1")) %>%
-  broom::tidy() #THIS WORKS! do same for rest
-## getting pretty diff robust SEs...off by a factor of 10 (paper says SE of 1.58) - maybe Ellie's right & # of rows should be ~150. 
-#well changing to 1969 did help for estimates
+  broom::tidy() 
+
+coeftest(ols_ssi_nc, vcov = vcovHC(ols_ssi_nc, type = "HC1")) %>%
+  tidy()
 
 coeftest(ols_di_c, vcov = vcovHC(ols_di_c, type = "HC1")) %>%
-  broom::tidy()
+  tidy()
+
+coeftest(ols_di_nc, vcov = vcovHC(ols_di_nc, type = "HC1")) %>%
+  tidy()
 
 ```
 
@@ -157,29 +149,40 @@ interpret the main estimates
 #https://cran.r-project.org/web/packages/ivreg/ivreg.pdf
 #https://www.econometrics-with-r.org/12-2-TGIVRM.html
 
-# this may be wrong...getting slightly off estimates
 iv_ssi_c <- ivreg(diff_dSSI ~ 
-                    diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+                    diff_earnPOW + as.factor(year)*as.factor(state) + msa + 
+                    lnpop + diff_pop + frac_earn 
+                  | valchange_cr + valchange_crlag1 + valchange_crlag2 + 
+                    as.factor(year)*as.factor(state) + msa + 
+                    lnpop + diff_pop + frac_earn, data = q1)
 
 
-iv_ssi_nc <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state), data = q1)
+iv_ssi_nc <- ivreg(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) 
+                   | valchange_cr + valchange_crlag1 + valchange_crlag2 + 
+                     as.factor(year)*as.factor(state), data = q1)
 
-iv_di_c <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+iv_di_c <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + 
+                   msa + lnpop + diff_pop + frac_earn 
+                 | valchange_cr + valchange_crlag1 + valchange_crlag2 + 
+                   as.factor(year)*as.factor(state) + msa + 
+                   lnpop + diff_pop + frac_earn, data = q1)
 
-iv_di_nc <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) | valchange_cr + valchange_crlag1 + valchange_crlag2 + as.factor(year)*as.factor(state), data = q1)
+iv_di_nc <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) | 
+                    valchange_cr + valchange_crlag1 + valchange_crlag2 + 
+                    as.factor(year)*as.factor(state), data = q1)
 
 ## getting slightly off coefficients
 coeftest(iv_ssi_c, vcov = vcovHC(iv_ssi_c, type = "HC1")) %>%
-  broom::tidy() 
+  tidy() 
 
 coeftest(iv_di_c, vcov = vcovHC(iv_di_c, type = "HC1")) %>%
-  broom::tidy() # pretty good estimate, but std error is still off
+  tidy() # pretty good estimate, but std error is still off
 
 coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
-  broom::tidy() 
+  tidy() 
 
 coeftest(iv_di_nc, vcov = vcovHC(iv_di_nc, type = "HC1")) %>%
-  broom::tidy() 
+  tidy() 
 
 
 ```
@@ -204,16 +207,32 @@ sum_table <- function(reg_model, reg_name) {
       sig_10perc = if_else(p.value < 0.1, "yes", "no"))
 }
 
-sum_table(iv_di_nc, "IV Disability - No Control")
+q6_sum <- sum_table(ols_di_nc, "OLS Disability - No Control") %>%
+  bind_rows(sum_table(ols_di_c, "OLS Disability - Control")) %>%
+  bind_rows(sum_table(ols_ssi_nc, "OLS SSI - No Control")) %>%
+  bind_rows(sum_table(ols_ssi_c, "OLS SSI - Control")) %>%
+  bind_rows(sum_table(iv_di_nc, "IV Disability - No Control")) %>%
+  bind_rows(sum_table(iv_di_c, "IV Disability - Control")) %>%
+  bind_rows(sum_table(iv_ssi_nc, "IV SSI - No Control")) %>%
+  bind_rows(sum_table(iv_ssi_c, "IV SSI - Control"))
+
+q6_sum %>%
+  knitr::kable(
+    caption = "Question 6d: Summary Table of OLS & IV Regressions", 
+    col.names = c(
+      "Regression type",
+      "Main estimate (log diff in county earnings)", 
+      "Robust Standard Error",
+      "P-value",
+      "Sig @ 1%?",
+      "Sig @ 5%?",
+      "Sig @ 10%?"),
+    digits = 4)
+
 
 # manipulate manually after exporting to Excel
 
 # bind_rows(sum_table(iv, ""))
-
-# either manually add significance info or do if_else statements
-# mutate(sig_1% = if_else(p.value < 0.01, "yes", "no"),
-#sig_5% = if_else(p.value < 0.05, "yes", "no"),
-#sig_10% = if_else(p.value < 0.1, "yes", "no"))
 
 #MAYBE
 #stargazer(iv_di_nc, iv_di_c, title="Results", align=TRUE)
