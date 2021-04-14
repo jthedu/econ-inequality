@@ -103,7 +103,7 @@ q1 %>%
 ```
 
 
-## Question 6d(iii): Construct the outcome variables
+## Question 6d(iii).A: OLS structural eqns
 
 ```{r}
 library(moderndive) #https://cran.r-project.org/web/packages/moderndive/vignettes/why-moderndive.html
@@ -116,15 +116,16 @@ library(sandwich)
 # https://www.r-econometrics.com/methods/hcrobusterrors/
 
 #other qs: 1969 q, why ellie & i get diff rows for coal res change in value
-# DOES YEAR*FIPS qualify as control var
+# DOES YEAR*STATE qualify as control var
+# DO I NEED FELM CUZ USING YEAR*STATE?
 
-ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips + msa + lnpop + diff_pop + frac_earn, data = q1)
+ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + year*fips, data = q1)
+ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips + msa + lnpop + diff_pop + frac_earn, data = q1)
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + year*fips, data = q1)
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
 
 get_regression_table(ols_ssi_c)
 get_regression_table(ols_ssi_nc)
@@ -133,14 +134,51 @@ get_regression_table(ols_di_nc)
 
 # trying to get robust SE
 get_regression_table(ols_ssi_c) #regular SE
-coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC0")) %>%
+
+
+## which HC# should i use? doesn't seem to make a diff...but they say Stata's results same as "HC1"
+coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC1")) %>%
   broom::tidy() #THIS WORKS! do same for rest
+## getting pretty diff robust SEs...off by a factor of 10 (paper says SE of 1.58) - maybe Ellie's right & # of rows should be ~150
 ```
 
+NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnPOW aka log diff in county earnings, right?)
 
-## Question 6d(i): Construct the outcome variables
+## Question 6d(iii).B: 1st-stage estimates
 
 ```{r}
+first_c <- lm(diff_earnPOW ~ as.factor(state)*as.factor(year) + valchange_cr + msa + lnpop + diff_pop + frac_earn, data = q1)
+
+first_nc <- lm(diff_earnPOW ~ as.factor(state)*as.factor(year) + valchange_cr, data = q1)
+
+get_regression_table(first_c) #normal SE (not robust)
+get_regression_table(first_nc) #normal SE (not robust)
 ```
 
+interpret the main estimates
+
+## Question 6d(iii).C: 2SLS structural eqn
+
+```{r}
+#https://cran.r-project.org/web/packages/ivreg/ivreg.pdf
+
+iv_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn | valchange_cr, data = q1)
+
+ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+
+ols_di_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+
+```
+
+
+## Question 6d(iii).D: Summary table
+
+```{r}
+## DO WE NEED TO HAVE STANDARD ERRORS AS PARENTHESES OR CAN WE HAVE IT AS A SEPARATE COLUMN?
+
+#lots of kable & bind_rows. need to mutate a column w/ descriptor info on which regression (e.g. ols, control/nc) the coeff corresponds to
+
+```
 
