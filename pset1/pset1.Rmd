@@ -6,21 +6,23 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, cache = TRUE)
 ```
 
 ## Load necessary libraries
 ```{r, message = FALSE}
 library(tidyverse)
 library(lubridate)
+library(broom)
 library(stats)
 library(ivreg)
-library(broom)
+library(lmtest)
+library(sandwich)
+library(moderndive)
+library(kableExtra)
 library(tinytex)
 
-# didn't end up using
-#library(lfe)
-#library(stargazer)
+#didn't end up using library(stargazer) or library(lfe)
 
 theme_set(theme_minimal())
 ```
@@ -86,13 +88,17 @@ q1 <- q1 %>%
 
 ```{r}
 # construct OLS regressions
-ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + 
+                  msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + 
+                   as.factor(year)*as.factor(state), data = q1)
 
-ols_di_c <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
+ols_di_c <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) + 
+                 msa + lnpop + diff_pop + frac_earn, data = q1)
 
-ols_di_nc <- lm(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
+ols_di_nc <- lm(diff_pay ~ diff_earnPOW + 
+                  as.factor(year)*as.factor(state), data = q1)
 
 # find estimates & robust SEs
 coeftest(ols_ssi_c, vcov = vcovHC(ols_ssi_c, type = "HC1")) %>%
@@ -106,7 +112,6 @@ coeftest(ols_di_c, vcov = vcovHC(ols_di_c, type = "HC1")) %>%
 
 coeftest(ols_di_nc, vcov = vcovHC(ols_di_nc, type = "HC1")) %>%
   tidy()
-
 ```
 
 NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnPOW aka log diff in county earnings, right?)
@@ -114,12 +119,15 @@ NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnP
 ## Question 6d(iii).B: 1st-stage estimates
 
 ```{r}
-first_c <- lm(diff_earnPOW ~ as.factor(state)*as.factor(year) + valchange_cr + msa + lnpop + diff_pop + frac_earn, data = q1)
+first_c <- lm(diff_earnPOW ~ valchange_cr + as.factor(state)*as.factor(year) + 
+                msa + lnpop + diff_pop + frac_earn, data = q1)
 
-first_nc <- lm(diff_earnPOW ~ as.factor(state)*as.factor(year) + valchange_cr, data = q1)
+first_nc <- lm(diff_earnPOW ~ valchange_cr + as.factor(state)*as.factor(year), 
+               data = q1)
 
-get_regression_table(first_c) #normal SE (not robust)
-get_regression_table(first_nc) #normal SE (not robust)
+#get estimates & normal SE (not robust)
+get_regression_table(first_c) 
+get_regression_table(first_nc) 
 ```
 
 interpret the main estimates
@@ -165,18 +173,14 @@ coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
 
 coeftest(iv_di_nc, vcov = vcovHC(iv_di_nc, type = "HC1")) %>%
   tidy() 
-
-
 ```
 
 
 ## Question 6d(iii).D: Summary table
 
+As discussed with Gin in office hours, I'm writing my robust standard errors for the main estimates in another column, rather than including them in parentheses in the same cell as the estimates.
+
 ```{r}
-## DO WE NEED TO HAVE STANDARD ERRORS AS PARENTHESES OR CAN WE HAVE IT AS A SEPARATE COLUMN?
-
-#lots of kable & bind_rows. need to mutate a column w/ descriptor info on which regression (e.g. ols, control/nc) the coeff corresponds to
-
 sum_table <- function(reg_model, reg_name) {
   coeftest(reg_model, vcov = vcovHC(reg_model, type = "HC1")) %>%
     tidy()  %>%
@@ -200,26 +204,15 @@ q6_sum <- sum_table(ols_di_nc, "OLS Disability - No Control") %>%
 
 q6_sum %>%
   knitr::kable(
-    caption = "Question 6d: Summary Table of OLS & IV Regressions", 
-    col.names = c(
-      "Regression type",
-      "Main estimate (log diff in county earnings)", 
-      "Robust Standard Error",
-      "P-value",
-      "Sig @ 1%?",
-      "Sig @ 5%?",
-      "Sig @ 10%?"),
-    digits = 4)
-
-
-# manipulate manually after exporting to Excel
-
-# bind_rows(sum_table(iv, ""))
-
-#MAYBE
-#stargazer(iv_di_nc, iv_di_c, title="Results", align=TRUE)
-
-
-
+    caption = "Summary Table of OLS & IV Regressions", 
+    col.names = c("Regression type",
+                  "Main estimate (log diff in county earnings)", 
+                  "Robust standard error",
+                  "P-value",
+                  "Sig @ 1%?",
+                  "Sig @ 5%?",
+                  "Sig @ 10%?"),
+    digits = 5) %>%
+    column_spec(2, width = "5cm")
 ```
 
