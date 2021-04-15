@@ -6,8 +6,10 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, cache = TRUE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
+
+*Note to self*: Because Latex doesn't like "##" from the tibbles printed here, be sure to delete cache folder when re-knitting .Rmd
 
 ## Load necessary libraries
 ```{r, message = FALSE}
@@ -29,7 +31,7 @@ theme_set(theme_minimal())
 
 ## Question 6d(i): Construct the outcome variables
 
-```{r}
+```{r, cache = TRUE}
 q1 <- read_csv("./DataExercise_IV/pset_iv_data.csv") %>%
   rename(pop = Pop, earnPOW = EarnPOW, man = Manufact)
 
@@ -64,7 +66,7 @@ q1 <-
 
 ## Question 6d(ii): Construct the instruments
 
-```{r}
+```{r, cache = TRUE}
 # construct coal price
 q1 <- q1 %>%
   mutate(coalprice = pcoalyr/pyr)
@@ -114,7 +116,14 @@ coeftest(ols_di_nc, vcov = vcovHC(ols_di_nc, type = "HC1")) %>%
   tidy()
 ```
 
-NEED TO INTERPRET MAIN ESTIMATES (that's just the estimated coeff for diff_earnPOW aka log diff in county earnings, right?)
+
+For OLS SSI - Control: A 1% increase in a county's earnings would lead to a **drop of 0.0264%** in SSI payments.
+
+For OLS SSI - No Control: A 1% increase in a county's earnings would lead to a **drop of 0.02%** in SSI payments.
+
+For OLS DI - Control: A 1% increase in a county's earnings would lead to a **drop of 0.002%** in DI payments.
+
+For OLS DI - No Control: A 1% increase in a county's earnings would lead to a **rise of 0.0016%** in DI payments.
 
 ## Question 6d(iii).B: 1st-stage estimates
 
@@ -130,7 +139,9 @@ get_regression_table(first_c)
 get_regression_table(first_nc) 
 ```
 
-interpret the main estimates
+For the control 1st-stage equation: A 1% increase in the value of coal reserves leads to a **rise of 0.022%** in county earnings.
+
+For the no-control 1st-stage equation: A 1% increase in coal reserves leads to a **rise of 0.024%** in county earnings.
 
 ## Question 6d(iii).C: 2SLS structural eqn
 
@@ -165,16 +176,23 @@ iv_di_nc <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) |
 coeftest(iv_ssi_c, vcov = vcovHC(iv_ssi_c, type = "HC1")) %>%
   tidy() 
 
-coeftest(iv_di_c, vcov = vcovHC(iv_di_c, type = "HC1")) %>%
+coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
   tidy() 
 
-coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
+coeftest(iv_di_c, vcov = vcovHC(iv_di_c, type = "HC1")) %>%
   tidy() 
 
 coeftest(iv_di_nc, vcov = vcovHC(iv_di_nc, type = "HC1")) %>%
   tidy() 
 ```
 
+For IV SSI - Control: A 1% increase in a county's earnings would lead to a **drop of 0.862%** in SSI payments.
+
+For IV SSI - No Control: A 1% increase in a county's earnings would lead to a **drop of 0.761%** in SSI payments.
+
+For IV DI - Control: A 1% increase in a county's earnings would lead to a **drop of 0.344%** in DI payments.
+
+For IV DI - No Control: A 1% increase in a county's earnings would lead to a **drop of 0.327%** in DI payments.
 
 ## Question 6d(iii).D: Summary table
 
