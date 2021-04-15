@@ -1,27 +1,29 @@
 ---
-title: "Inequality PSet 1 - Question #6 (code part)"
-author: "JDu"
+title: "Inequality PSet 1 - Question #6d (code part)"
+author: "Julia Du"
 date: "`r lubridate::today()`"
 output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
 
 ## Load necessary libraries
 ```{r, message = FALSE}
 library(tidyverse)
 library(lubridate)
-library(lfe)
 library(stats)
-#library(tsibble)
 library(ivreg)
 library(broom)
-library(stargazer)
+library(tinytex)
+
+# didn't end up using
+#library(lfe)
+#library(stargazer)
 
 theme_set(theme_minimal())
 ```
-
-## could write 6c in .Rmd - but should do 6a & 6b on paper
-
-# Question 6d
 
 ## Question 6d(i): Construct the outcome variables
 
@@ -38,7 +40,7 @@ q1 <- q1 %>%
 
 # 6d(i).B: construct log diff
 q1 <- q1 %>%
-  group_by(fips) %>% #DELETE HERE IF NEEDED
+  group_by(fips) %>% 
   mutate(lagpay = lag(lnpay, n = 1),
          lagpop = lag(lnpop, n = 1),
          lagearnPOW = lag(lnearnPOW, n = 1),
@@ -48,7 +50,8 @@ q1 <- q1 %>%
          diff_earnPOW = lnearnPOW - lagearnPOW,
          diff_dSSI = lndSSI - lagdSSI) 
   
-# 6d(i).C: construct var that is fraction of county earnings from manufacturing in 1969
+# 6d(i).C: construct var that is 
+# fraction of county earnings from manufacturing in 1969
 q1 <- 
   q1 %>%
   filter(year == 1969) %>%
@@ -76,35 +79,13 @@ q1 <- q1 %>%
                    diff_coalprice * ln_coalres, 0)) %>%
   mutate(valchange_crlag1 = lag(valchange_cr, n = 1),
          valchange_crlag2 = lag(valchange_cr, n = 2))
-
-#doesn't make a diff when you do if_else - most likely is 1969?
-# NOPE DOESN'T MAKE A DIFF
-q1_try <- q1 %>%
-  group_by(fips) %>%
-  mutate(ln_coalprice = log(coalprice),
-         lag_coalprice = lag(ln_coalprice, n = 1),
-         diff_coalprice = ln_coalprice - lag_coalprice) %>%
-  mutate(ln_coalres = if_else(coalres > 0,
-                   log(coalres), 0)) %>%
-  mutate(valchange_cr = diff_coalprice * ln_coalres, 0) 
-
-q1 %>%
-  filter(valchange_cr < 0)
 ```
 
 
 ## Question 6d(iii).A: OLS structural eqns
 
 ```{r}
-library(moderndive) #https://cran.r-project.org/web/packages/moderndive/vignettes/why-moderndive.html
-library(lfe) #felm - multiple group fixed effs? - 
-#https://cran.r-project.org/web/packages/lfe/lfe.pdf (pg. 19)
-#library(robustbase) 
-#use lmrob just like lm - https://www.brodrigues.co/blog/2018-07-08-rob_stderr/
-library(lmtest)
-library(sandwich)
-# https://www.r-econometrics.com/methods/hcrobusterrors/
-
+# construct OLS regressions
 ols_ssi_c <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state) + msa + lnpop + diff_pop + frac_earn, data = q1)
 
 ols_ssi_nc <- lm(diff_dSSI ~ diff_earnPOW + as.factor(year)*as.factor(state), data = q1)
@@ -146,6 +127,7 @@ interpret the main estimates
 ## Question 6d(iii).C: 2SLS structural eqn
 
 ```{r}
+# helpful links:
 #https://cran.r-project.org/web/packages/ivreg/ivreg.pdf
 #https://www.econometrics-with-r.org/12-2-TGIVRM.html
 
@@ -171,12 +153,12 @@ iv_di_nc <- ivreg(diff_pay ~ diff_earnPOW + as.factor(year)*as.factor(state) |
                     valchange_cr + valchange_crlag1 + valchange_crlag2 + 
                     as.factor(year)*as.factor(state), data = q1)
 
-## getting slightly off coefficients
+# obtain robust SEs
 coeftest(iv_ssi_c, vcov = vcovHC(iv_ssi_c, type = "HC1")) %>%
   tidy() 
 
 coeftest(iv_di_c, vcov = vcovHC(iv_di_c, type = "HC1")) %>%
-  tidy() # pretty good estimate, but std error is still off
+  tidy() 
 
 coeftest(iv_ssi_nc, vcov = vcovHC(iv_ssi_nc, type = "HC1")) %>%
   tidy() 
