@@ -204,7 +204,7 @@ q6_sum <- sum_table(ols_di_nc, "OLS Disability - No Control") %>%
 
 q6_sum %>%
   knitr::kable(
-    caption = "Summary Table of OLS & IV Regressions", 
+    caption = "Summary Table of OLS and IV Regressions", 
     col.names = c("Regression type",
                   "Main estimate (log diff in county earnings)", 
                   "Robust standard error",
@@ -212,7 +212,9 @@ q6_sum %>%
                   "Sig @ 1%?",
                   "Sig @ 5%?",
                   "Sig @ 10%?"),
-    digits = 5) %>%
-    column_spec(2, width = "5cm")
+    digits = 5,
+    linesep = "\\addlinespace") %>%
+  kableExtra::column_spec(2:4, width = "2cm") %>%
+  kableExtra::column_spec(5:7, width = "1cm") 
 ```
 
