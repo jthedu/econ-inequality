@@ -1,0 +1,65 @@
+---
+title: "Inequality PSet 2 - Question #5f (code part)"
+author: "Julia Du"
+date: "`r lubridate::today()`"
+output: pdf_document
+---
+
+*Note to self*: Because Latex doesn't like "##" from the tibbles printed here, be sure to delete cache folder when re-knitting .Rmd
+
+## Load necessary libraries
+```{r}
+library(tidyverse)
+library(lubridate)
+library(broom)
+library(stats)
+library(ivreg)
+library(lmtest)
+library(sandwich)
+library(moderndive)
+library(kableExtra)
+library(tinytex)
+
+#didn't end up using library(stargazer) or library(lfe)
+
+theme_set(theme_minimal())
+```
+
+
+## Question 5f(i): Construct the outcome variables
+```{r}
+#import the dataset
+q2 <- read_csv("./DataExercise_RD/adkw.csv") 
+
+glimpse(q2)
+
+#graph Figure 2A
+q2 %>%
+  mutate(bin = cut_width(x = dbirwt, width = 28.3495, center = 1500)) %>%
+  drop_na(death1year) %>% # CAN I JUST DROP THESE NAs?
+  group_by(bin) %>%
+  summarize(med_bin = median(dbirwt), mean_death1year = mean(death1year)) %>%
+  ggplot()+
+  geom_point(mapping = aes(x = med_bin, y = mean_death1year))
+
+# my graph only has 7 points/bins...the paper has 10
+
+q2 %>%
+  group_by(death1year) %>%
+  count()
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+```
