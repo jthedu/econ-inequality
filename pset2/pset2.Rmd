@@ -40,18 +40,33 @@ q2 %>%
   group_by(bin) %>%
   summarize(med_bin = median(dbirwt), mean_death1year = mean(death1year)) %>%
   ggplot()+
-  geom_point(mapping = aes(x = med_bin, y = mean_death1year))
-
-# my graph only has 7 points/bins...the paper has 10
+  geom_point(mapping = aes(x = med_bin, y = mean_death1year)) + 
+  geom_vline(xintercept = 1500) +
+  labs(x = "mean one-yr mortality", y = "median birthweight (g)", title = "2f(i) Graph")
 
 q2 %>%
   group_by(death1year) %>%
   count()
+
+# aim for this (1485,1515)
+q2 %>%
+  arrange(dbirwt)
 ```
 
 
 
 ```{r}
+q2 %>%
+  mutate(bin = cut_width(x = dbirwt, width = 28.3495, center = 1500)) %>%
+  drop_na(death1year, gestat) %>% 
+  group_by(bin) %>%
+  summarize(med_bin = median(dbirwt), mean_death1year = mean(death1year), mean_gestat = mean(gestat))%>%
+  ggplot()+
+  geom_point(mapping = aes(x = med_bin, y = mean_gestat)) 
+
+#part 6a: VI.A. Testing for Evidence of Differences in Covariates across 1,500 Grams
+#To further consider these differences, Figure V compares covariates of interest in the 5 ounces around the VLBW threshold.44 Here, the comparisons appear even more stable across the threshold
+
 ```
 
 
