@@ -1,11 +1,9 @@
 ---
-title: "Inequality PSet 2 - Question #5f (code part)"
+title: "Inequality PSet 2 - Question #5 (data exercise)"
 author: "Julia Du"
 date: "`r lubridate::today()`"
 output: pdf_document
 ---
-
-*Note to self*: Because Latex doesn't like "##" from the tibbles printed here, be sure to delete cache folder when re-knitting .Rmd
 
 ## Load necessary libraries
 ```{r, message = FALSE, warning = FALSE}
@@ -27,37 +25,36 @@ theme_set(theme_minimal())
 
 ## Question 5a
 
-The causal relationship of interest is the effect of medical expenditures on health outcomes - in this case, the effect of additional infant health care on mortality outcomes of infants. 
+The causal relationship of interest is the returns to additional medical spending, i.e. the effect of more medical expenditures on health outcomes. In this case, that's the effect of additional infant health care on one-year mortality rate for infants. 
 
 The structural equation can be seen as: 
 
-$$infant\:mortality = a_i + \beta_1(health\:inputs) + a_t + a_s + \delta X'_i + \epsilon_i$$
-
-$$infant\:mortality = a_i + \beta_1(health\:inputs)  + a_2VLBW_i \times(g_i - 1500) \\ + a_3(1-VLBW_I) \times (g_i-1500)+ a_t + a_s + \delta X'_i + \epsilon_i$$
-
-
-$a_t$, $a_s$, $X'_i$ are essentially control variables, being  indicators for each year t of birth, state s of birth, and newborn characteristics respectively. 
+$$infant\:mortality = \beta_0 + \beta_1(health\:inputs) + U_i$$
 
 ## Question 5b
 
-The problem with estimating this equation in cross-sectional data is that FINISH THIS!!!
+Cross-sectional data looks at a defined population at a specific point in time. This could lead to an underestimate of the effect of health inputs on health outcomes. 
+
+For example, a cross-section could miss how medical technologies improve over time, which could lead to an increase in return on medical spending (e.g. as tech improves with time, spending another dollar on health care likely has a bigger positive effect on patient health outcomes). If we didn't focus only on one specific point in time (as we do with cross-sectional data), we might find that spending another dollar would reduce infant mortality by an even greater amount than initially calculated. 
+
 
 ## Question 5c
 
 The instrument here is the Very Low Birthweight (VLBW) indicator, which is a dummy that indicates if the newborn was classified as weighing strictly less than 1500 grams. 
+VLBW allows us to get an unbiased estimate of the causal relationship because it is correlated with the variable of interest (health inputs/spending - if a baby is classified underweight, there should be more money spent on their health) and because it should only affect the dependent variable (mortality outcome) through VLBW's effect on health inputs/spending. That is, it satisfies the relevance assumption & exclusion restriction. 
 
-VLBW as an instrument allows us to get an unbiased estimate of the causal relationship because ...
+
+More specifically, it isn't really possible to predict or control infants' birth weights, so birth weight should be as good as random assignment to the treatment of additional health care (and thus increased health spending) - and so infants on either side of the 1500g cutoff should see the same distribution of characteristics. Then, any difference seen in mortality outcomes around the cutoff can be chalked up to the effect of additional health spending on mortality.
+
 
 ## Question 5d
 
-The "first-stage" equation is: 
+The **"first-stage" equation** is: 
 $$Y_i = b_0 + b_1VLBW_i + b_2VLBW_i \times(g_i - 1500) \\ + b_3(1-VLBW_I) \times (g_i-1500) + b_t + b_s + \delta X_i' + e_i$$
 
 where $Y_i$ is the health inputs (aka costs). 
 
-###This looks at the effects that VLBW has on health inputs given differences in weight.  
-
-The "reduced form" regression is: 
+The **"reduced form" equation** is: 
 $$Y_i = a_0 + a_1VLBW_i + a_2VLBW_i \times(g_i - 1500) \\ + a_3(1-VLBW_I) \times (g_i-1500) + a_t + a_s + \delta X_i' + \epsilon_i$$
 where $Y_i$ is one-year mortality.
 
@@ -72,18 +69,22 @@ As you can see, there's a great deal of similarity between these two equations. 
 * $X_i'$ are newborn characteristics (essentially control variables)
 
 So similarly, the coefficients are (I will be writing just the $a$ coefficients here, but they describe the same effect on mortality as the $b$ coefficients have on health inputs): 
+
 * $a_1$ and $b_1$ are the effect of VLBW on outcome $Y_i$ (i.e. mortality outcome for $a_1$ & health input for $b_1$)
 * $a_2$ is the effect of VLBW on $Y_i$ if the infant is below the cutoff of 1500 grams 
-* $a_2$ is the effect of VLBW on $Y_i$ if the infant is above the cutoff of 1500 grams
+* $a_3$ is the effect of VLBW on $Y_i$ if the infant is above the cutoff of 1500 grams. If the trends for infants on either side of the cutoff is the same, $a_2 = a_3$
 * $\delta$ is the effect of the infant characteristics $X_i'$ on outcome $Y_i$
 
 ## Question 5e
 
-instrument is VLBW (below cutoff or not)
-D is whether or not they get the treatment. the relevance assumption is that there is a discontinuous jump in medical inputs at the cutoff
+In using fuzzy RD, we assume that the first-stage/relevance assumption and the exclusion restriction assumption is met. 
 
-## Question 5f(i): Construct the outcome variables
-```{r}
+To satisfy the exclusion restriction, we need to first check if the assignment to treatment is as good as random. In other words, we need to make sure that infants' classified weights are indeed being recorded accurately so that their assignment to the treatment of increased health inputs/spending is as good as random. Doctors may sometimes manipulate the running variable of birth weight, marking babies as underweight because their families can then get more government support. To check this, we should perform the McCrary test to see if the density is different above and below the 1500g cutoff. We can also check this by seeing if covariates like gestation age are continuous with regard to birth weight. If treatment assignment is truly good as random, then the baseline characteristics should have the same distribution below and above the cutoff.  
+
+To satisfy the exclusion restriction, we also need to check if there's continuity in potential outcomes with regards to birth weight. If there is no treatment, then the outcome (e.g. mortality) shouldn't be discontinuously changed around the cutoff. If this condition isn't met, that indicates there's another factor influencing the mortality outcome here, invalidating our current RD design. 
+
+## Question 5f(i)
+```{r, message = FALSE}
 #import the dataset
 q2 <- read_csv("./DataExercise_RD/adkw.csv") 
 
@@ -99,10 +100,9 @@ q2 %>%
   labs(x = "median birthweight (g)", y = "mean one-yr mortality", title = "2f(i) Graph")
 ```
 
+As with the paper, my graph shows that there is a general reduction in mortality as birth weight increases, reflecting the health benefits associated with higher birth weight. There is a noticeable increase in mortality in the ounce bin just above the 1500g cutoff (about 6.25%), compared to the ounce bin right below the cutoff (about 5.75%) - so it seems that treatment (i.e. increased medical spending for infants just barely classified as underweight) does positively affect health outcomes (i.e. it decreases mortality for those infants).
 
 ## Question 5f(ii)
-
-**5f(ii).A**
 
 ```{r}
 q2 %>%
@@ -118,11 +118,10 @@ q2 %>%
        title = "2f(ii) Graph") 
 ```
 
-**5f(ii).B**
 
-This figure supports the RD identifying assumption that covariates of interest (gestational age) are continuous with regard to the running variable (mortality). This helps us conclude that the treatment assignment is as good as random since the baseline characteristic  below and above the cutoff of 1500 grams have similar distributions.
+This figure supports the RD identifying assumption that covariates of interest (in this case, gestational age) are continuous with regard to the running variable (mortality). This helps us conclude that the treatment assignment is as good as random since the baseline characteristics for infants below and above the cutoff of 1500 grams have similar distributions.
 
-## 5f(iii)
+## Question 5f(iii)
 
 ```{r}
 q2_reg_data <- q2 %>%
@@ -136,16 +135,16 @@ q2_reg_data <- q2 %>%
 # estimate reduced form eqn by OLS
 q2_ols <- lm(death1year ~ VLBW + VLBW2 + VLBW3, data = q2_reg_data)
 
-coeftest(q2_ols, vcov = vcovHC(q2_ols, type = "HC1"))
+# heteroskedastic error
+coeftest(q2_ols, vcov = vcovHC(q2_ols, type = "HC1")) %>%
+  tidy() %>%
+  select(term, estimate, std.error)
 
 # helpful link on printing stargazer table:
 # https://stackoverflow.com/questions/45724432/stargazer-output-is-code-not-a-table
 ```
 
-```{r latextable, results = "asis"}
+```{r table, results = "asis"}
 stargazer(q2_ols, type = "latex", title = "5f(iii).C", digits = 4)
 ```
 
-
-```{r}
-```
