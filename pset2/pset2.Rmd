@@ -8,7 +8,7 @@ output: pdf_document
 *Note to self*: Because Latex doesn't like "##" from the tibbles printed here, be sure to delete cache folder when re-knitting .Rmd
 
 ## Load necessary libraries
-```{r}
+```{r, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(lubridate)
 library(broom)
@@ -19,12 +19,39 @@ library(sandwich)
 library(moderndive)
 library(kableExtra)
 library(tinytex)
+library(stargazer)
 
 #didn't end up using library(stargazer) or library(lfe)
 
 theme_set(theme_minimal())
 ```
 
+
+## Question 5a
+
+The causal relationship of interest is the effect of medical expenditures on health outcomes, in this case mortality outcomes of newborns. 
+
+The structural equation can be seen as: 
+
+$$mortality = a + \beta(health\:inputs) + controls + error$$
+## Question 5b
+
+The problem with estimating this equation in cross-sectional data is that FINISH THIS!!!
+
+## Question 5c
+
+The instrument here is the Very Low Birthweight Indicator (VLBW), which is a dummy that indicates if the newborn was classified as weighing strictly less than 1500 grams. 
+
+VLBW as an instrument allows us to get an unbiased estimate of the causal relationship because ...
+
+## Question 5d
+
+The "reduced form" regression is: 
+$$Y_i = a_0 + a_1VLBW_i + a_2VLBW_i \times(g_i - 1500) \\ + a_3(1-VLBW_I) \times (g_i-1500) + a_t + a_s + \delta X_i' + \epsilon_i$$
+
+$Y$ is an outcome or treatment meausre like one-year mortality or costs, $VLBW$ is the aforementioned indicator instrument on whether the newborn is classified as strictly less than 1500 g.  
+
+## Question 5e
 
 ## Question 5f(i): Construct the outcome variables
 ```{r}
@@ -42,18 +69,13 @@ q2 %>%
   ggplot()+
   geom_point(mapping = aes(x = med_bin, y = mean_death1year)) + 
   geom_vline(xintercept = 1500) +
-  labs(x = "mean one-yr mortality", y = "median birthweight (g)", title = "2f(i) Graph")
-
-q2 %>%
-  group_by(death1year) %>%
-  count()
-
-# aim for this (1485,1515)
-q2 %>%
-  arrange(dbirwt)
+  labs(x = "median birthweight (g)", y = "mean one-yr mortality", title = "2f(i) Graph")
 ```
 
 
+## 5f(ii)
+
+5f(ii).A
 
 ```{r}
 q2 %>%
@@ -62,16 +84,44 @@ q2 %>%
   group_by(bin) %>%
   summarize(med_bin = median(dbirwt), mean_death1year = mean(death1year), mean_gestat = mean(gestat))%>%
   ggplot()+
-  geom_point(mapping = aes(x = med_bin, y = mean_gestat)) 
+  geom_point(mapping = aes(x = med_bin, y = mean_gestat)) + 
+  geom_vline(xintercept = 1500) +
+  labs(x = "median birth weight (g)", y = "mean gestational age (wks)", title = "2f(ii) Graph") 
 
 #part 6a: VI.A. Testing for Evidence of Differences in Covariates across 1,500 Grams
 #To further consider these differences, Figure V compares covariates of interest in the 5 ounces around the VLBW threshold.44 Here, the comparisons appear even more stable across the threshold
 
 ```
 
+5f(ii).B
 
+This figure supports the RD identifying assumption that covariates of interest (gestational age) are continuous with regard to the running variable (mortality). This helps us conclude that the treatment assignment is as good as random since the baseline characteristic  below and above the cutoff of 1500 grams have similar distributions.
+
+## 5f(iii)
 
 ```{r}
+q2_reg_data <- q2 %>%
+  mutate(bin = cut_width(x = dbirwt, width = 28.3495, center = 1500)) %>%
+  group_by(bin) %>%
+  mutate(VLBW = if_else(dbirwt < 1500, 1, 0)) %>%
+  mutate(VLBW2 = VLBW*(dbirwt-1500)/100,
+         VLBW3 = (1-VLBW)*(dbirwt-1500)/100)
+# divide by 100 since paper has values in (100s) for htose variables
+
+# estimate reduced form eqn by OLS
+q2_ols <- lm(death1year ~ VLBW + VLBW2 + VLBW3, data = q2_reg_data)
+
+get_regression_table(q2_ols)
+
+coeftest(q2_ols, vcov = vcovHC(q2_ols, type = "HC1"))
+
+stargazer(q2_ols, type = "latex", title = "table 1")
+
+
+
+#dummy_VLBW + dummy_VLBW*(dbirwt - 1500) + (1-dummy_VLBW)*(dbirwt-1500)
+# should we be using ivreg? instead of ols?
+
 ```
 
 
