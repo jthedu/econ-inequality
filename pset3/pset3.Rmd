@@ -1,0 +1,24 @@
+---
+title: "Ineq Pset 3"
+author: "Julia Du"
+date: "`r lubridate::today()`"
+output: pdf_document
+---
+
+## Load necessary libraries
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(lubridate)
+library(broom)
+library(stats)
+library(ivreg)
+library(lmtest)
+library(sandwich)
+library(moderndive)
+library(kableExtra)
+library(tinytex)
+library(stargazer)
+
+theme_set(theme_minimal())
+```
+
