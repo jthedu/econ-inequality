@@ -22,3 +22,108 @@ library(stargazer)
 theme_set(theme_minimal())
 ```
 
+## Question 4a
+
+The causal relationship of interest is the effect of income (where your income is either increased by EITC or not) on infant health outcomes, specifically infant birth weight. 
+
+The structural equation is: 
+
+$$Y_{ipjst} = \beta_0 + \beta_1(Income_{ipjst}) + \varepsilon_{ipjst}$$ 
+where $i$ is the individual. The other subscripts will be discussed later.
+
+## Question 4b
+
+If we estimate the structural equation in cross-sectional data, then our estimate of the causal parameter of interest $\beta_1$ will suffer from Omitted Variable Bias (OVB) since those...
+income is endogeneous because it is correlated with unobserved health care inputs (??? maybe just unobserved health). aka those with better health tend to have higher income
+
+###?????. 
+Recall: 
+
+$$ OVB =  \beta_1^{OLS} - \beta_1 \\ = \frac{cov(Income_{ipjst}, \varepsilon_{ipjst})}{var(Income_{ipjst})}$$
+
+So, the direction of bias depends on the sign of the covariance. In this case, it's likely our estimate is upward-biased since income tends to be positively correlated with unobserved health. 
+
+## Question 4c (maybe just write this out)
+4c(i). The 1st difference is
+
+2nd diff is
+
+4c(ii) parallel assumption
+
+4c(iii)
+
+## Question 5d
+
+The **"reduced-form" equation** is: 
+$$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gamma_p + \eta_s + \delta_t + \phi_j + \varepsilon_{pjst}$$ 
+EXPLAIN EACH TERM, HOW IT RELATES TO DD STRATEGY, & COEFF OF INTEREST (look at medium article)
+
+where Ypjst is the fraction of low birth weight infants multiplied by 100 for the cell defined
+by parity p, demographic group j, state s and effective tax year t. γp is a set of dummy variables for birth order, ηs is a set of dummy variables for state of residence, and δt is a set of dummy variables for effective tax year
+
+
+$Y_{pjst}$ is a measure of infant health (e.g., fraction low birth weight, average birth weight) for the cell defined by parity $p$, demographic group $j$, in state $s$ for effective tax year $t$. 
+
+$After$ equals one for effective tax years 1994 through 
+1998. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility, and we include fixed effects for demographic group $\phi_j$, parity $γ_p$, state $η_s$, and effective tax year $δ_t$.
+
+compare second- and higher order births (Parity2plus)
+to first births, recalling that the EITC treatment corresponds to the number of children prior to the current bir
+
+
+
+
+As you can see, there's a great deal of similarity between these two equations. The variables are: 
+
+* $VLBW_i$ is the indicator instrumental variable on whether the newborn was classified as VLBW. 
+* $VLBW_i \times(g_i - 1500)$ is how far below the cutoff of 1500 g the infant is (if they are indeed below the cutoff). 
+* $(1-VLBW_I) \times (g_i-1500)$ is how far above the cutoff the infant is (if they are indeed above the cutoff).
+* $g_i$ is infant i's weight in grams
+* $b_t$ and $a_t$ are indicators for each year of birth t (essentially controls)
+* $b_s$ and $a_s$ are indicators for each state of birth s (essentially controls)
+* $X_i'$ are newborn characteristics (essentially control variables)
+
+So similarly, the coefficients are (I will be writing just the $a$ coefficients here, but they describe the same effect on mortality as the $b$ coefficients have on health inputs): 
+
+* $a_1$ and $b_1$ are the effect of VLBW on outcome $Y_i$ (i.e. mortality outcome for $a_1$ & health input for $b_1$)
+* $a_2$ is the effect of VLBW on $Y_i$ if the infant is below the cutoff of 1500 grams 
+* $a_3$ is the effect of VLBW on $Y_i$ if the infant is above the cutoff of 1500 grams. If the trends for infants on either side of the cutoff is the same, $a_2 = a_3$
+* $\delta$ is the effect of the infant characteristics $X_i'$ on outcome $Y_i$
+
+
+## Question 5e
+Alternative specification to equation: 
+$$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \varphi_1 After_t + \varphi_2 Parity2plus_p \\ + \beta \tilde{X}_{pjst}  + \varepsilon_{pjst}$$
+DO I NEED TO EXPLAIN WHY THIS WORKS??? think i can ust think a lil bit on this...
+
+## attempt to load data
+
+Note: cannot upload csv to Github as file too big
+
+• Restrict the sample to single women with a high school education or less, and to effective tax years 1991 through 1998
+
+```{r}
+q3 <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
+
+q3 <- q3 %>%
+  filter(dmeducgrp %in% c("drop out", "high school"),
+         marital == "not married") %>%
+  filter(between(effective, 1991, 1998)) %>%
+  mutate(y_lowbirth = 100 * lowbirth)
+
+q3 %>%
+  distinct(effective)
+# missing edu? or marital missing?
+# use distinct to find all unique values of a var
+```
+
+
+
+
+
+
+### words
+asdfadk;
+
+
+
