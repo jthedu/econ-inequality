@@ -18,6 +18,7 @@ library(moderndive)
 library(kableExtra)
 library(tinytex)
 library(stargazer)
+library(fastDummies)
 
 theme_set(theme_minimal())
 ```
@@ -100,26 +101,61 @@ DO I NEED TO EXPLAIN WHY THIS WORKS??? think i can ust think a lil bit on this..
 
 Note: cannot upload csv to Github as file too big
 
-• Restrict the sample to single women with a high school education or less, and to effective tax years 1991 through 1998
 
 ```{r}
 q3 <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
 
+# 4g(i).A & .B: restrict sample, create dummies 
 q3 <- q3 %>%
   filter(dmeducgrp %in% c("drop out", "high school"),
          marital == "not married") %>%
   filter(between(effective, 1991, 1998)) %>%
-  mutate(y_lowbirth = 100 * lowbirth)
+  mutate(y_lowbirth = 100 * lowbirth) %>%
+  mutate(after = if_else(between(effective, 1994, 1998), 1, 0)) %>%
+  mutate(
+    treat1 = if_else(parvar == "1st live birth", 0, 1),
+    treat2 = if_else(parvar %in% c("2nd live birth"), 1, 0),
+    treat3 = if_else(parvar %in% c("3rd  birth", "4th  birth"), 1, 0)) %>%
+  mutate(treat1_after = after*treat1)
+# just fyi: there are 2 spaces in between the words for "3rd birth" & "4th birth"
+
+# process data for controls
+q3 <- q3 %>%
+  mutate(stateres = as_factor(stateres)) %>%
+  mutate
+
+fe_varlist <- q3 %>%
+  select(starts_with("fe_I")) %>%
+  colnames()
+
+independ_var <- c("other", "black", "age2", "age3", "high", "racemiss", "hispanic", "hispanicmiss", "reform", "a_urate_st", "threshpreg", "as_factor(effective)", "as_factor(parvar)")
 
 q3 %>%
-  distinct(effective)
-# missing edu? or marital missing?
-# use distinct to find all unique values of a var
+  select(stateres) 
+
+# estimate model(1) by OLS
+
+q3_ols1 <- lm(y_lowbirth ~ treat1_after, data = q3)
+
+q2_ols <- lm(death1year ~ VLBW + VLBW2 + VLBW3, data = q2_reg_data)
+
+``` 
+
+
+
+```{r}
+df <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
+
+df$treat1 <- as.numeric(df$parvar >= 2)
+df$treat2 <- as.numeric(df$parvar == 2)
+df$treat3 <- as.numeric(df$parvar >= 3)
+
+df %>%
+  select(stateres)
+
+df$stateres <- as.factor(df$stateres)
+fe_ctrl_var <- names(df)[grep("fe_", names(df))]
 ```
-
-
-
-
 
 
 ### words
