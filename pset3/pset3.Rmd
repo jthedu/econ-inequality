@@ -226,16 +226,35 @@ q3_yr <- q3 %>%
          treat1_eventyr6 = treat1*eventyr6,
          treat1_eventyr7 = treat1*eventyr7) 
 
-evt1_var <-
+evt1_var <- names(q3_yr)[grep("treat1_e", names(q3_yr))]
+  #q3_yr %>%
+  #select(starts_with("treat1_e")) %>%
+  #colnames()
+#unsure why i'm doing this
+evt1_var <- setdiff(evt1_var, "treat1_eventyear2")
   
+evt_control <- c("other", "black", "age2", "age3", "high", "racemiss", 
+                  "hispanic", "hispanicmiss", "reform", "a_urate_st", 
+                  "threshpreg", "as_factor(eventyr)", "as_factor(parvar)")
+    
 q3_yr_reg <- felm(as.formula(
-  paste("y_lowbirth ~ treat1_after +",
-        paste(independ_var, collapse = " + "), "+",
+  paste("y_lowbirth ~ ",
+        paste(evt1_var, collapse = " + "), "+",
+        paste(evt_control, collapse = " + "), "+",
         paste(fe_varlist, collapse = " + "), 
         "| stateres | 0 | stateres", sep = "")), 
-  data = q3, weights = q3$cellnum)
+  data = q3_yr, weights = q3_yr$cellnum)
 
 
+```
+## plot fig 3a
+```{r}
+df.plot <- as.data.frame(matrix(ncol = 2, nrow = 8))
+names(df.plot) <- c("eyear", "lowbirth2_a")
+df.plot$eyear <- 1991:1998
+df.plot$lowbirth2_a[1:2] <- summary(q3_yr_reg)$coefficients[1:2,1]
+df.plot$lowbirth2_a[3] <- 0
+df.plot$lowbirth2_a[4:8] <- summary(q3_yr_reg)$coefficients[3:7,1]
 ```
 
 
