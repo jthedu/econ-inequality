@@ -61,13 +61,13 @@ $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gam
 EXPLAIN EACH TERM, HOW IT RELATES TO DD STRATEGY, & COEFF OF INTEREST (look at medium article)
 
 where Ypjst is the fraction of low birth weight infants multiplied by 100 for the cell defined
-by parity p, demographic group j, state s and effective tax year t. γp is a set of dummy variables for birth order, ηs is a set of dummy variables for state of residence, and δt is a set of dummy variables for effective tax year
+by parity p, demographic group j, state s and effective tax year t. $\gamma_p$ is a set of dummy variables for birth order, $\eta_s$ is a set of dummy variables for state of residence, and $\delta_t$ is a set of dummy variables for effective tax year
 
 
 $Y_{pjst}$ is a measure of infant health (e.g., fraction low birth weight, average birth weight) for the cell defined by parity $p$, demographic group $j$, in state $s$ for effective tax year $t$. 
 
 $After$ equals one for effective tax years 1994 through 
-1998. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility, and we include fixed effects for demographic group $\phi_j$, parity $γ_p$, state $η_s$, and effective tax year $δ_t$.
+1998. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility, and we include fixed effects for demographic group $\phi_j$, parity $\gamma_p$, state $\eta_s$, and effective tax year $\delta_t$.
 
 compare second- and higher order births (Parity2plus)
 to first births, recalling that the EITC treatment corresponds to the number of children prior to the current bir
@@ -103,7 +103,7 @@ DO I NEED TO EXPLAIN WHY THIS WORKS??? think i can ust think a lil bit on this..
 Note: cannot upload csv to Github as file too big
 
 
-```{r}
+```{r, message = FALSE}
 q3 <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
 
 # 4g(i).A & .B: restrict sample, create dummies 
@@ -128,9 +128,9 @@ fe_varlist <- q3 %>%
   select(starts_with("fe_I")) %>%
   colnames()
 
-independ_var <- c("other", "black", "age2", "age3", "high", "racemiss", "hispanic", "hispanicmiss", "reform", "a_urate_st", "threshpreg", "as_factor(effective)", "as_factor(parvar)")
-
-### DO I NEED TO INCLUDE DUMMIES? HOW?
+independ_var <- c("other", "black", "age2", "age3", "high", "racemiss", 
+                  "hispanic", "hispanicmiss", "reform", "a_urate_st", 
+                  "threshpreg", "as_factor(effective)", "as_factor(parvar)")
 
 # estimate model(1) by OLS
 q3_ols1 <- felm(as.formula(
@@ -140,12 +140,10 @@ q3_ols1 <- felm(as.formula(
         "| stateres | 0 | stateres", sep = "")), 
   data = q3, weights = q3$cellnum)
 
-q3_ols1 %>%
-  summary("robust")
-
-coeftest(q3_ols1, vcov = vcovHC(q3_ols1, type = "HC1")) #%>%
-  tidy() %>%
-  select(term, estimate, std.error)
+# commenting out the summary of reg results
+# as we have a full stargazer summary table comin up
+#q3_ols1 %>%
+ # summary("robust")
 ``` 
 
 so this is eqn 1 - getting pretty similar coeffs, even w/ matrix error message. 
@@ -153,7 +151,7 @@ my # of observations is right (47687)
 
 
 ## Equation 2
-```{r}
+```{r, message = FALSE}
 q3 <- q3 %>%
   mutate(treat2_after = after*treat2,
          treat3_after = after*treat3) 
@@ -165,13 +163,15 @@ q3_ols2 <- felm(as.formula(
         "| stateres | 0 | stateres", sep = "")), 
   data = q3, weights = q3$cellnum)
 
-q3_ols2 %>%
-  summary("robust")
+#q3_ols2 %>%
+ # summary("robust")
 
 ```
 
-# Equation 3
-```{r}
+eitc's eff larger for fams w/ multiple kids (cuz cost more tor aise than just 1 kid)
+
+# Model 1''
+```{r, message = FALSE}
 q3_data3 <- q3 %>%
   filter(parvar != "1st live birth")
 
@@ -182,19 +182,61 @@ q3_ols3 <- felm(as.formula(
         "| stateres | 0 | stateres", sep = "")), 
   data = q3_data3, weights = q3_data3$cellnum)
 
-q3_ols3 %>%
-  summary("robust")
+#q3_ols3 %>%
+ # summary("robust")
 ```
 
 
-## Table
+treatment group: 3rd or higher order group
+control group: 2nd order birth group
+
+## Question 4g(iv): Summary table
+```{r table, results = "asis"}
+stargazer(q3_ols1, q3_ols2, q3_ols3, type = "latex", 
+          keep = c("treat1_after", "treat2_after", "treat3_after"), 
+          title = "Question 4g(iv)", 
+          dep.var.labels =c("Eqn 1", "Eqn 1'", "Eqn 1''"), 
+          omit.stat =c("f","rsq","adj.rsq","ser"),
+          covariate.labels =c("Parity2+ x After", "Parity=2 x After",
+                              "Parity3+ x After"),
+          dep.var.caption = "OLS",
+          digits = 4)
+```
+
+## Question 4h
 ```{r}
-model_list <- c(q3_ols1, q3_ols2, q3_ols3)
+q3_yr <- q3 %>%
+  mutate(eventyr = effective - 1993) %>%
+  #mutate(eventyr0 = if_else(eventyr == -2, 1, 0)) %>% # can also do this method
+  mutate(eventyr0 = as.numeric(eventyr == -2),
+         eventyr1 = as.numeric(eventyr == -1),
+         eventyr2 = as.numeric(eventyr == 0),
+         eventyr3 = as.numeric(eventyr == 1),
+         eventyr4 = as.numeric(eventyr == 2),
+         eventyr5 = as.numeric(eventyr == 3),
+         eventyr6 = as.numeric(eventyr == 4),
+         eventyr7 = as.numeric(eventyr == 5)) %>%
+  #only need dummies for treat 1 since estimating model 1
+  mutate(treat1_eventyr0 = treat1*eventyr0,
+         treat1_eventyr1 = treat1*eventyr1,
+         treat1_eventyr2 = treat1*eventyr2,
+         treat1_eventyr3 = treat1*eventyr3,
+         treat1_eventyr4 = treat1*eventyr4,
+         treat1_eventyr5 = treat1*eventyr5,
+         treat1_eventyr6 = treat1*eventyr6,
+         treat1_eventyr7 = treat1*eventyr7) 
 
-stargazer(q3_ols1, q3_ols2, type = "latex", 
-          title = "5f(iii).C", keep = c("treat1_after", "treat2_after", "treat3_after"),digits = 4)
+evt1_var <-
+  
+q3_yr_reg <- felm(as.formula(
+  paste("y_lowbirth ~ treat1_after +",
+        paste(independ_var, collapse = " + "), "+",
+        paste(fe_varlist, collapse = " + "), 
+        "| stateres | 0 | stateres", sep = "")), 
+  data = q3, weights = q3$cellnum)
+
+
 ```
-
 
 
 ```{r}
@@ -204,11 +246,22 @@ df$treat1 <- as.numeric(df$parvar >= 2)
 df$treat2 <- as.numeric(df$parvar == 2)
 df$treat3 <- as.numeric(df$parvar >= 3)
 
-df %>%
-  select(stateres)
-
 df$stateres <- as.factor(df$stateres)
 fe_ctrl_var <- names(df)[grep("fe_", names(df))]
+
+df$eventyr <- df$effective - 1993
+df$eventyr0 <- as.numeric(df$eventyr == -2)
+
+df %>%
+  select(effective, starts_with("event")) %>%
+  unique()
+
+q3 %>%
+  mutate(eventyr = effective - 1993) %>%
+  #mutate(eventyr0 = if_else(eventyr == -2, 1, 0)) %>%
+  mutate(eventyr0 = as.numeric(eventyr == -2)) %>%
+  select(effective, starts_with("event")) %>%
+  unique()
 ```
 
 
