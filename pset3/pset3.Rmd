@@ -10,7 +10,7 @@ output: pdf_document
 library(tidyverse)
 library(lubridate)
 library(broom)
-library(stats)
+library(glue)
 library(ivreg)
 library(lmtest)
 library(sandwich)
@@ -19,6 +19,7 @@ library(kableExtra)
 library(tinytex)
 library(stargazer)
 library(fastDummies)
+library(lfe)
 
 theme_set(theme_minimal())
 ```
@@ -121,8 +122,7 @@ q3 <- q3 %>%
 
 # process data for controls
 q3 <- q3 %>%
-  mutate(stateres = as_factor(stateres)) %>%
-  mutate
+  mutate(stateres = as_factor(stateres))
 
 fe_varlist <- q3 %>%
   select(starts_with("fe_I")) %>%
@@ -130,16 +130,70 @@ fe_varlist <- q3 %>%
 
 independ_var <- c("other", "black", "age2", "age3", "high", "racemiss", "hispanic", "hispanicmiss", "reform", "a_urate_st", "threshpreg", "as_factor(effective)", "as_factor(parvar)")
 
-q3 %>%
-  select(stateres) 
+### DO I NEED TO INCLUDE DUMMIES? HOW?
 
 # estimate model(1) by OLS
+q3_ols1 <- felm(as.formula(
+  paste("y_lowbirth ~ treat1_after +",
+        paste(independ_var, collapse = " + "), "+",
+        paste(fe_varlist, collapse = " + "), 
+        "| stateres | 0 | stateres", sep = "")), 
+  data = q3, weights = q3$cellnum)
 
-q3_ols1 <- lm(y_lowbirth ~ treat1_after, data = q3)
+q3_ols1 %>%
+  summary("robust")
 
-q2_ols <- lm(death1year ~ VLBW + VLBW2 + VLBW3, data = q2_reg_data)
-
+coeftest(q3_ols1, vcov = vcovHC(q3_ols1, type = "HC1")) #%>%
+  tidy() %>%
+  select(term, estimate, std.error)
 ``` 
+
+so this is eqn 1 - getting pretty similar coeffs, even w/ matrix error message. 
+my # of observations is right (47687)
+
+
+## Equation 2
+```{r}
+q3 <- q3 %>%
+  mutate(treat2_after = after*treat2,
+         treat3_after = after*treat3) 
+
+q3_ols2 <- felm(as.formula(
+  paste("y_lowbirth ~ treat2_after + treat3_after + ",
+        paste(independ_var, collapse = " + "), "+",
+        paste(fe_varlist, collapse = " + "), 
+        "| stateres | 0 | stateres", sep = "")), 
+  data = q3, weights = q3$cellnum)
+
+q3_ols2 %>%
+  summary("robust")
+
+```
+
+# Equation 3
+```{r}
+q3_data3 <- q3 %>%
+  filter(parvar != "1st live birth")
+
+q3_ols3 <- felm(as.formula(
+  paste("y_lowbirth ~ treat3_after + ",
+        paste(independ_var, collapse = " + "), "+",
+        paste(fe_varlist, collapse = " + "), 
+        "| stateres | 0 | stateres", sep = "")), 
+  data = q3_data3, weights = q3_data3$cellnum)
+
+q3_ols3 %>%
+  summary("robust")
+```
+
+
+## Table
+```{r}
+model_list <- c(q3_ols1, q3_ols2, q3_ols3)
+
+stargazer(q3_ols1, q3_ols2, type = "latex", 
+          title = "5f(iii).C", keep = c("treat1_after", "treat2_after", "treat3_after"),digits = 4)
+```
 
 
 
