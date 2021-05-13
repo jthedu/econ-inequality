@@ -1,5 +1,5 @@
 ---
-title: "Inequality Pset 3"
+title: "Inequality Pset 3, Q4"
 author: "Julia Du"
 date: "`r lubridate::today()`"
 output: pdf_document
@@ -39,14 +39,24 @@ $$ OVB =  \beta_1^{OLS} - \beta_1 \\ = \frac{cov(Income_{ipjst}, \varepsilon_{ip
 
 So, the direction of bias depends on the sign of the covariance. In this case, it's likely our estimate is upward-biased since income tends to be positively correlated with unobserved health. 
 
-## Question 4c (maybe just write this out)
-**4c(i).** on paper
+## Question 4c 
+**4c(i).** 
+I have included a graph of this a few pages earlier.
+
+The 1st diff-in-diff is:
+$$\bar Y_{2plus, after} - \bar Y_{1, after}$$
+This is the difference in infant health between families with 2 or more kids and with families with just one kid after the EITC expansion occurred.
+
+The 2nd diff-in-diff is:
+$$\bar Y_{2plus, before} - \bar Y_{1, before}$$
+
+This is the difference in infant health between families with 2 or more kids and with families with just one kid before the EITC expansion occurred.
 
 **4c(ii).** The key identifying assumption is the parallel assumption, i.e. that absent the EITC expansion policy change (OBRA93), both families with one child and families with two or more children follow parallel trends over time in their infant health outcomes.
 
 **4c(iii).** One possible violation could be that there is a macro shock occurs sometime before the EITC expansion, and the shock affects the two family types differently. For example, maybe there's another policy that seeks to discourage families from having more children and thus gives HHs with only 1 kid bigger subsidies. In that case, families with 1 kid and those with 2 or more would be on different trends. 
 
-## Question 5d
+## Question 4d
 
 The **"reduced-form" equation** is: 
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gamma_p + \eta_s + \delta_t + \phi_j + \varepsilon_{pjst}$$ 
@@ -57,7 +67,7 @@ $After$ is a dummy variable equaling one for effective tax years 1994 through 19
 
 $\delta$ is our coefficient of interest, i.e. the DD estimate. It shows the effect of the treatment (i.e. policy expansion) on the treated's (in this case, families whose birth is 2nd-order or higher) infant birth weight. 
 
-## Question 5e
+## Question 4e
 Alternative specification to equation: 
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \varphi_1 After_t + \varphi_2 Parity2plus_p \\ + \beta \tilde{X}_{pjst}  + \varepsilon_{pjst}$$
 In this case, $\varphi_1$ represents the difference in the outcome before & after the EITC policy change, while $\varphi_2$ represents the difference between the treated and control groups.
@@ -146,7 +156,7 @@ q3_ols3 <- felm(as.formula(
  # summary("robust")
 ```
 
-**4g(iii).B***
+**4g(iii).B**
 The treatment group is families with 3rd or higher order births, and the control group is families with 2nd order births.
 
 ## Question 4g(iv): Summary table
