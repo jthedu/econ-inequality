@@ -1,24 +1,20 @@
 ---
-title: "Ineq Pset 3"
+title: "Inequality Pset 3"
 author: "Julia Du"
 date: "`r lubridate::today()`"
 output: pdf_document
 ---
 
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
 ## Load necessary libraries
 ```{r, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(lubridate)
-library(broom)
-library(glue)
-library(ivreg)
-library(lmtest)
-library(sandwich)
-library(moderndive)
-library(kableExtra)
 library(tinytex)
 library(stargazer)
-library(fastDummies)
 library(lfe)
 
 theme_set(theme_minimal())
@@ -26,7 +22,7 @@ theme_set(theme_minimal())
 
 ## Question 4a
 
-The causal relationship of interest is the effect of income (where your income is either increased by EITC or not) on infant health outcomes, specifically infant birth weight. 
+The causal relationship of interest is the effect of income (where your income is either increased by the changed EITC) on infant health outcomes, specifically infant birth weight. 
 
 The structural equation is: 
 
@@ -35,10 +31,8 @@ where $i$ is the individual. The other subscripts will be discussed later.
 
 ## Question 4b
 
-If we estimate the structural equation in cross-sectional data, then our estimate of the causal parameter of interest $\beta_1$ will suffer from Omitted Variable Bias (OVB) since those...
-income is endogeneous because it is correlated with unobserved health care inputs (??? maybe just unobserved health). aka those with better health tend to have higher income
+If we estimate the structural equation in cross-sectional data, then our estimate of the causal parameter of interest $\beta_1$ will suffer from Omitted Variable Bias (OVB), as income is endogeneous because it is correlated with unobserved health care inputs. In general, those with better health tend to have higher income.
 
-###?????. 
 Recall: 
 
 $$ OVB =  \beta_1^{OLS} - \beta_1 \\ = \frac{cov(Income_{ipjst}, \varepsilon_{ipjst})}{var(Income_{ipjst})}$$
@@ -46,62 +40,31 @@ $$ OVB =  \beta_1^{OLS} - \beta_1 \\ = \frac{cov(Income_{ipjst}, \varepsilon_{ip
 So, the direction of bias depends on the sign of the covariance. In this case, it's likely our estimate is upward-biased since income tends to be positively correlated with unobserved health. 
 
 ## Question 4c (maybe just write this out)
-4c(i). The 1st difference is
+**4c(i).** on paper
 
-2nd diff is
+**4c(ii).** The key identifying assumption is the parallel assumption, i.e. that absent the EITC expansion policy change (OBRA93), both families with one child and families with two or more children follow parallel trends over time in their infant health outcomes.
 
-4c(ii) parallel assumption
-
-4c(iii)
+**4c(iii).** One possible violation could be that there is a macro shock occurs sometime before the EITC expansion, and the shock affects the two family types differently. For example, maybe there's another policy that seeks to discourage families from having more children and thus gives HHs with only 1 kid bigger subsidies. In that case, families with 1 kid and those with 2 or more would be on different trends. 
 
 ## Question 5d
 
 The **"reduced-form" equation** is: 
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gamma_p + \eta_s + \delta_t + \phi_j + \varepsilon_{pjst}$$ 
-EXPLAIN EACH TERM, HOW IT RELATES TO DD STRATEGY, & COEFF OF INTEREST (look at medium article)
 
-where Ypjst is the fraction of low birth weight infants multiplied by 100 for the cell defined
-by parity p, demographic group j, state s and effective tax year t. $\gamma_p$ is a set of dummy variables for birth order, $\eta_s$ is a set of dummy variables for state of residence, and $\delta_t$ is a set of dummy variables for effective tax year
+where $Y_{pjst}$ is a measure of infant health (specifically, the fraction of low birth weight infants multiplied by 100) for the cell defined by parity $p$, demographic group $j$, in state $s$ for effective tax year $t$. $\gamma_p$ is a set of dummy variables for birth order, $\eta_s$ is a set of dummy variables for state of residence, $\delta_t$ is a set of dummy variables for effective tax year. We also include  fixed effects for demographic group $\phi_j$. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility. $a$ is the intercept, representing the baseline infant health (i.e. for families with a first-order birth before the policy expansion). $\varepsilon_{pjst}$ represents the unobserved variation. 
 
+$After$ is a dummy variable equaling one for effective tax years 1994 through 1998, $Parity2plus_p$ is a dummy variable indicating if a birth is second or higher order. Their interaction lets us make use of DD strategy in trying to suss out the difference in infant health outcomes before and after the EITC policy change, while also factoring in the difference between the treated and control groups (families with 2nd-order or higher births and families with 1st-order birth, respectively)
 
-$Y_{pjst}$ is a measure of infant health (e.g., fraction low birth weight, average birth weight) for the cell defined by parity $p$, demographic group $j$, in state $s$ for effective tax year $t$. 
-
-$After$ equals one for effective tax years 1994 through 
-1998. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility, and we include fixed effects for demographic group $\phi_j$, parity $\gamma_p$, state $\eta_s$, and effective tax year $\delta_t$.
-
-compare second- and higher order births (Parity2plus)
-to first births, recalling that the EITC treatment corresponds to the number of children prior to the current bir
-
-
-
-
-As you can see, there's a great deal of similarity between these two equations. The variables are: 
-
-* $VLBW_i$ is the indicator instrumental variable on whether the newborn was classified as VLBW. 
-* $VLBW_i \times(g_i - 1500)$ is how far below the cutoff of 1500 g the infant is (if they are indeed below the cutoff). 
-* $(1-VLBW_I) \times (g_i-1500)$ is how far above the cutoff the infant is (if they are indeed above the cutoff).
-* $g_i$ is infant i's weight in grams
-* $b_t$ and $a_t$ are indicators for each year of birth t (essentially controls)
-* $b_s$ and $a_s$ are indicators for each state of birth s (essentially controls)
-* $X_i'$ are newborn characteristics (essentially control variables)
-
-So similarly, the coefficients are (I will be writing just the $a$ coefficients here, but they describe the same effect on mortality as the $b$ coefficients have on health inputs): 
-
-* $a_1$ and $b_1$ are the effect of VLBW on outcome $Y_i$ (i.e. mortality outcome for $a_1$ & health input for $b_1$)
-* $a_2$ is the effect of VLBW on $Y_i$ if the infant is below the cutoff of 1500 grams 
-* $a_3$ is the effect of VLBW on $Y_i$ if the infant is above the cutoff of 1500 grams. If the trends for infants on either side of the cutoff is the same, $a_2 = a_3$
-* $\delta$ is the effect of the infant characteristics $X_i'$ on outcome $Y_i$
-
+$\delta$ is our coefficient of interest, i.e. the DD estimate. It shows the effect of the treatment (i.e. policy expansion) on the treated's (in this case, families whose birth is 2nd-order or higher) infant birth weight. 
 
 ## Question 5e
 Alternative specification to equation: 
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \varphi_1 After_t + \varphi_2 Parity2plus_p \\ + \beta \tilde{X}_{pjst}  + \varepsilon_{pjst}$$
-DO I NEED TO EXPLAIN WHY THIS WORKS??? think i can ust think a lil bit on this...
+In this case, $\varphi_1$ represents the difference in the outcome before & after the EITC policy change, while $\varphi_2$ represents the difference between the treated and control groups.
 
-## attempt to load data
+## Question 4f-4g(i): Model 1
 
 Note: cannot upload csv to Github as file too big
-
 
 ```{r, message = FALSE}
 q3 <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
@@ -132,7 +95,7 @@ independ_var <- c("other", "black", "age2", "age3", "high", "racemiss",
                   "hispanic", "hispanicmiss", "reform", "a_urate_st", 
                   "threshpreg", "as_factor(effective)", "as_factor(parvar)")
 
-# estimate model(1) by OLS
+# 4g(i).C: estimate model(1) by OLS
 q3_ols1 <- felm(as.formula(
   paste("y_lowbirth ~ treat1_after +",
         paste(independ_var, collapse = " + "), "+",
@@ -145,11 +108,8 @@ q3_ols1 <- felm(as.formula(
  # summary("robust")
 ``` 
 
-so this is eqn 1 - getting pretty similar coeffs, even w/ matrix error message. 
-my # of observations is right (47687)
 
-
-## Equation 2
+## Question 4g(ii): Model 1'
 ```{r, message = FALSE}
 q3 <- q3 %>%
   mutate(treat2_after = after*treat2,
@@ -167,9 +127,10 @@ q3_ols2 <- felm(as.formula(
 
 ```
 
-eitc's eff larger for fams w/ multiple kids (cuz cost more tor aise than just 1 kid)
+**4g(ii).B.**
+It makes sense that the EITC expansion affects families with more kids (3 or more) on a bigger scale. Families with more kids (i.e. 3rd or higher order births) likely face more costs in raising their kids than a family with just 2 kids (i.e. 2nd-order birth); accordingly, those 3 or more kids families benefit more from expanding the EITC.
 
-## Model 1''
+## Question 4g(iii): Model 1''
 ```{r, message = FALSE}
 q3_data3 <- q3 %>%
   filter(parvar != "1st live birth")
@@ -185,9 +146,8 @@ q3_ols3 <- felm(as.formula(
  # summary("robust")
 ```
 
-
-treatment group: 3rd or higher order group
-control group: 2nd order birth group
+**4g(iii).B***
+The treatment group is families with 3rd or higher order births, and the control group is families with 2nd order births.
 
 ## Question 4g(iv): Summary table
 ```{r table, results = "asis"}
@@ -247,8 +207,8 @@ q3_yr_reg <- felm(as.formula(
 
 
 ```
-## plot fig 3a
-```{r}
+## Plot Figure 3a
+```{r, warning = FALSE}
 df.plot <- as.data.frame(matrix(ncol = 2, nrow = 8))
 names(df.plot) <- c("eyear", "lowbirth2_a")
 df.plot$eyear <- 1991:1998
@@ -267,5 +227,6 @@ df.plot %>%
 
 ```
 
-no pretrend, no violation of parallel trends assumption.
+**4h(ii).**
+The plot shows that there no pretrend (i.e. quite flat), indicating that there is no violation of the parallel trends assumption for model 1.
 
