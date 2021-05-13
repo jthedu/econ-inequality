@@ -140,8 +140,7 @@ q3_ols1 <- felm(as.formula(
         "| stateres | 0 | stateres", sep = "")), 
   data = q3, weights = q3$cellnum)
 
-# commenting out the summary of reg results
-# as we have a full stargazer summary table comin up
+# commenting out the summary of reg results as we have a stargazer table comin up
 #q3_ols1 %>%
  # summary("robust")
 ``` 
@@ -170,7 +169,7 @@ q3_ols2 <- felm(as.formula(
 
 eitc's eff larger for fams w/ multiple kids (cuz cost more tor aise than just 1 kid)
 
-# Model 1''
+## Model 1''
 ```{r, message = FALSE}
 q3_data3 <- q3 %>%
   filter(parvar != "1st live birth")
@@ -195,7 +194,7 @@ control group: 2nd order birth group
 stargazer(q3_ols1, q3_ols2, q3_ols3, type = "latex", 
           keep = c("treat1_after", "treat2_after", "treat3_after"), 
           title = "Question 4g(iv)", 
-          dep.var.labels =c("Eqn 1", "Eqn 1'", "Eqn 1''"), 
+          dep.var.labels =c("Model 1", "Model 1'", "Model 1''"), 
           omit.stat =c("f","rsq","adj.rsq","ser"),
           covariate.labels =c("Parity2+ x After", "Parity=2 x After",
                               "Parity3+ x After"),
@@ -260,43 +259,13 @@ df.plot$lowbirth2_a[4:8] <- summary(q3_yr_reg)$coefficients[3:7,1]
 df.plot %>%
   ggplot()+
   geom_line(mapping = aes(x = eyear, y = lowbirth2_a)) +
+  geom_point(mapping = aes(x = eyear, y = lowbirth2_a)) +
   geom_vline(xintercept = 1993) +
   geom_hline(yintercept = 0) +
-  labs(x = "Effective tax year", y = "Fraction LBW (*100)", title = "Estimates for Parity 2+ vs Parity 1")
+  labs(x = "Effective tax year", y = "Fraction LBW (*100)", 
+       title = "Estimates for Parity 2+ vs Parity 1")
 
 ```
 
 no pretrend, no violation of parallel trends assumption.
-
-
-```{r}
-df <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
-
-df$treat1 <- as.numeric(df$parvar >= 2)
-df$treat2 <- as.numeric(df$parvar == 2)
-df$treat3 <- as.numeric(df$parvar >= 3)
-
-df$stateres <- as.factor(df$stateres)
-fe_ctrl_var <- names(df)[grep("fe_", names(df))]
-
-df$eventyr <- df$effective - 1993
-df$eventyr0 <- as.numeric(df$eventyr == -2)
-
-df %>%
-  select(effective, starts_with("event")) %>%
-  unique()
-
-q3 %>%
-  mutate(eventyr = effective - 1993) %>%
-  #mutate(eventyr0 = if_else(eventyr == -2, 1, 0)) %>%
-  mutate(eventyr0 = as.numeric(eventyr == -2)) %>%
-  select(effective, starts_with("event")) %>%
-  unique()
-```
-
-
-### words
-asdfadk;
-
-
 
