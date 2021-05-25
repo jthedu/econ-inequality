@@ -69,88 +69,74 @@ Alternative specification to equation:
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \varphi_1 After_t + \varphi_2 Parity2plus_p \\ + \beta \tilde{X}_{pjst}  + \varepsilon_{pjst}$$
 In this case, $\varphi_1$ represents the difference in the outcome before & after the EITC policy change, while $\varphi_2$ represents the difference between the treated and control groups.
 
-## Question 4f-4g(i): Model 1
+## Question 5: Data exercise
 
-Note: cannot upload csv to Github as file too big
 
-```{r, message = FALSE}
-q3 <- read_csv("./dataexercise_pset3/pset_dd_data.csv")
+```{r}
+q4 <- read_csv("./dataexercise_pset4/pset_experiment_data.csv")
 
-# 4g(i).A & .B: restrict sample, create dummies 
-q3 <- q3 %>%
-  filter(dmeducgrp %in% c("drop out", "high school"),
-         marital == "not married") %>%
-  filter(between(effective, 1991, 1998)) %>%
-  mutate(y_lowbirth = 100 * lowbirth) %>%
-  mutate(after = if_else(between(effective, 1994, 1998), 1, 0)) %>%
+# 5b
+q4 <- q4 %>%
+  drop_na(treatment) %>%
   mutate(
-    treat1 = if_else(parvar == "1st live birth", 0, 1),
-    treat2 = if_else(parvar %in% c("2nd live birth"), 1, 0),
-    treat3 = if_else(parvar %in% c("3rd  birth", "4th  birth"), 1, 0)) %>%
-  mutate(treat1_after = after*treat1)
-# just fyi: there are 2 spaces in between the words for "3rd birth" & "4th birth"
+    treatment = if_else(treatment == "Selected", 1, 0),
+    returned_12m = if_else(returned_12m == "Yes", 1, 0)) 
+  
+q4 %>%
+  drop_na(returned_12m) %>% # CAN I DROP NA 
+  group_by(treatment) %>%
+  summarize(response_rate = mean(returned_12m))
 
-# process data for controls
-q3 <- q3 %>%
-  mutate(stateres = as_factor(stateres))
-
-fe_varlist <- q3 %>%
-  select(starts_with("fe_I")) %>%
-  colnames()
-
-independ_var <- c("other", "black", "age2", "age3", "high", "racemiss", 
-                  "hispanic", "hispanicmiss", "reform", "a_urate_st", 
-                  "threshpreg", "as_factor(effective)", "as_factor(parvar)")
-
-# 4g(i).C: estimate model(1) by OLS
-q3_ols1 <- felm(as.formula(
-  paste("y_lowbirth ~ treat1_after +",
-        paste(independ_var, collapse = " + "), "+",
-        paste(fe_varlist, collapse = " + "), 
-        "| stateres | 0 | stateres", sep = "")), 
-  data = q3, weights = q3$cellnum)
-
-# commenting out the summary of reg results as we have a stargazer table comin up
-#q3_ols1 %>%
- # summary("robust")
+q4 %>%
+  count(returned_12m)
 ``` 
 
+(5b) The response rates are pretty similar across the control and treatment gropus (41.5% and 39.9%, respectively). Given this closeness, I'd say there isn't evidence of differential survey response rates. 
 
-## Question 4g(ii): Model 1'
-```{r, message = FALSE}
-q3 <- q3 %>%
-  mutate(treat2_after = after*treat2,
-         treat3_after = after*treat3) 
+## Question 5c
+```{r}
+q4 %>%
+  #distinct(ohp_all_mo_survey)
+  mutate(try = parse_number(ohp_all_mo_survey)) %>%
+  select(try, ohp_all_mo_survey) %>%
+  distinct() # this works!
 
-q3_ols2 <- felm(as.formula(
-  paste("y_lowbirth ~ treat2_after + treat3_after + ",
-        paste(independ_var, collapse = " + "), "+",
-        paste(fe_varlist, collapse = " + "), 
+### SHOULD I BE USING treatment for the lottery var, or draw_lottery?. think it should be treatment
+
+q4 <- q4 %>%
+  mutate(
+    ohp_all_mo_survey = parse_number(ohp_all_mo_survey),
+    ohp_all_ever_survey = if_else(ohp_all_ever_survey == "Enrolled", 1, 0))
+  
+dummies_q4 <- q4 %>%
+  select(starts_with ("ddd")) %>%
+  colnames()
+
+## does including the fixed effs ("ddd" var) include the regular HH size dummy var & survey wave dummy var? that is, fixed effs covers the interactions btwn these dummy vars & the dummy vars themselves?
+## ALSO - we don't need to weight by cell num, correct? can we just use regular OLS, or must we use felm?
+
+q4_1ststage_ols1 <- felm(as.formula(
+  paste("ohp_all_ever_survey ~  treatment",
+        paste(dummies_q4, collapse = " + "), "+",
         "| stateres | 0 | stateres", sep = "")), 
   data = q3, weights = q3$cellnum)
-
-#q3_ols2 %>%
- # summary("robust")
 
 ```
 
-**4g(ii).B.**
-It makes sense that the EITC expansion affects families with more kids (3 or more) on a bigger scale. Families with more kids (i.e. 3rd or higher order births) likely face more costs in raising their kids than a family with just 2 kids (i.e. 2nd-order birth); accordingly, those 3 or more kids families benefit more from expanding the EITC.
 
-## Question 4g(iii): Model 1''
+
+## Question 5d
 ```{r, message = FALSE}
-q3_data3 <- q3 %>%
-  filter(parvar != "1st live birth")
+#healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them, but might need drop_na
 
-q3_ols3 <- felm(as.formula(
-  paste("y_lowbirth ~ treat3_after + ",
-        paste(independ_var, collapse = " + "), "+",
-        paste(fe_varlist, collapse = " + "), 
-        "| stateres | 0 | stateres", sep = "")), 
-  data = q3_data3, weights = q3_data3$cellnum)
-
-#q3_ols3 %>%
- # summary("robust")
+  mutate(
+    rx_any_12m = if_else(rx_any_12m == "Yes", 1, 0), # has NA 
+    doc_any_12m = if_else(doc_any_12m == "Yes", 1, 0), # has NA  
+    er_any_12m = if_else(er_any_12m == "Yes", 1, 0), # has NA  
+    hosp_any_12m = if_else(hosp_any_12m == "Yes", 1, 0), # has NA  
+    cost_any_oop_12m = if_else(cost_any_oop_12m == "Yes", 1, 0), # has NA  
+    cost_any_owe_12m = if_else(cost_any_owe_12m == "Yes", 1, 0), # has NA  
+    ) 
 ```
 
 **4g(iii).B**
