@@ -72,7 +72,7 @@ In this case, $\varphi_1$ represents the difference in the outcome before & afte
 ## Question 5: Data exercise
 
 
-```{r}
+```{r, message = FALSE}
 q4 <- read_csv("./dataexercise_pset4/pset_experiment_data.csv")
 
 # 5b
@@ -91,7 +91,7 @@ q4 %>%
   count(returned_12m)
 ``` 
 
-(5b) The response rates are pretty similar across the control and treatment gropus (41.5% and 39.9%, respectively). Given this closeness, I'd say there isn't evidence of differential survey response rates. 
+(5b) The response rates are pretty similar across the control and treatment groups (41.5% and 39.9%, respectively). Given this closeness, I'd say there isn't evidence of differential survey response rates. 
 
 ## Question 5c
 ```{r}
@@ -119,7 +119,7 @@ q4_1ststage_ols1 <- felm(as.formula(
   paste("ohp_all_ever_survey ~  treatment",
         paste(dummies_q4, collapse = " + "), "+",
         "| stateres | 0 | stateres", sep = "")), 
-  data = q3, weights = q3$cellnum)
+  data = q4)
 
 ```
 
@@ -128,7 +128,8 @@ q4_1ststage_ols1 <- felm(as.formula(
 ## Question 5d
 ```{r, message = FALSE}
 #healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them, but might need drop_na
-
+q4 %>%
+  
   mutate(
     rx_any_12m = if_else(rx_any_12m == "Yes", 1, 0), # has NA 
     doc_any_12m = if_else(doc_any_12m == "Yes", 1, 0), # has NA  
