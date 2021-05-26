@@ -95,13 +95,13 @@ q4 %>%
 
 ## Question 5c
 ```{r}
+## Delete this when knit
 q4 %>%
   #distinct(ohp_all_mo_survey)
   mutate(try = parse_number(ohp_all_mo_survey)) %>%
   select(try, ohp_all_mo_survey) %>%
   distinct() # this works!
 
-### SHOULD I BE USING treatment for the lottery var, or draw_lottery?. think it should be treatment
 
 q4 <- q4 %>%
   mutate(
@@ -112,21 +112,55 @@ dummies_q4 <- q4 %>%
   select(starts_with ("ddd")) %>%
   colnames()
 
-## does including the fixed effs ("ddd" var) include the regular HH size dummy var & survey wave dummy var? that is, fixed effs covers the interactions btwn these dummy vars & the dummy vars themselves?
-## ALSO - we don't need to weight by cell num, correct? can we just use regular OLS, or must we use felm?
+# drop NAs for weights to 
+q4_test <- q4 %>%
+  drop_na(weight_12m)
 
-q4_1ststage_ols1 <- felm(as.formula(
-  paste("ohp_all_ever_survey ~  treatment",
-        paste(dummies_q4, collapse = " + "), "+",
-        "| stateres | 0 | stateres", sep = "")), 
-  data = q4)
+## does including the fixed effs ("ddd" var) include the regular HH size dummy var & survey wave dummy var? that is, fixed effs covers the interactions btwn these dummy vars & the dummy vars themselves? YES
+
+# fyi: if put in fixed effs, you might be creating the dummies & interactions - but we already have created them
+# column 6, table iii
+
+q4_1ststage_ols_ever <- felm(as.formula(
+  paste("ohp_all_ever_survey ~  treatment", "+",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")), 
+  data = q4_test, weights = q4_test$weight_12m)
+
+q4_1ststage_ols_mo <- felm(as.formula(
+  paste("ohp_all_mo_survey ~  treatment", "+",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")), 
+  data = q4_test, weights = q4_test$weight_12m)
+
+q4_1ststage_ols_end <- felm(as.formula(
+  paste("ohp_all_end_survey ~  treatment", "+",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")), 
+  data = q4_test, weights = q4_test$weight_12m)
+
+#q4_1ststage_ols_ever %>%
+ # summary("robust")
 
 ```
 
 
+## Question 5c(ii): 1st stage OLS results
+```{r table1, results = "asis"}
+stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end, type = "latex", 
+          keep = "treament", 
+          title = "Question 5c(iii)", 
+          dep.var.labels =c("Ever on Medicaid", "Number of months on Medicaid", "On Medicaid at end"), 
+          omit.stat =c("f","rsq","adj.rsq","ser"),
+ #         covariate.labels =c("Ever on Medicaid", #"Parity=2 x After",
+ #                             "Parity3+ x After"),
+          dep.var.caption = "OLS 1st stage",
+          digits = 4)
+```
+
 
 ## Question 5d
-```{r, message = FALSE}
+```{r, message = FALSE, eval = FALSE}
 #healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them, but might need drop_na
 q4 %>%
   
@@ -139,88 +173,4 @@ q4 %>%
     cost_any_owe_12m = if_else(cost_any_owe_12m == "Yes", 1, 0), # has NA  
     ) 
 ```
-
-**4g(iii).B**
-The treatment group is families with 3rd or higher order births, and the control group is families with 2nd order births.
-
-## Question 4g(iv): Summary table
-```{r table, results = "asis"}
-stargazer(q3_ols1, q3_ols2, q3_ols3, type = "latex", 
-          keep = c("treat1_after", "treat2_after", "treat3_after"), 
-          title = "Question 4g(iv)", 
-          dep.var.labels =c("Model 1", "Model 1'", "Model 1''"), 
-          omit.stat =c("f","rsq","adj.rsq","ser"),
-          covariate.labels =c("Parity2+ x After", "Parity=2 x After",
-                              "Parity3+ x After"),
-          dep.var.caption = "OLS",
-          digits = 4)
-```
-
-
-## Question 4h
-```{r}
-q3_yr <- q3 %>%
-  mutate(eventyr = effective - 1993) %>%
-  #mutate(eventyr0 = if_else(eventyr == -2, 1, 0)) %>% # can also do this method
-  mutate(eventyr0 = as.numeric(eventyr == -2),
-         eventyr1 = as.numeric(eventyr == -1),
-         eventyr2 = as.numeric(eventyr == 0),
-         eventyr3 = as.numeric(eventyr == 1),
-         eventyr4 = as.numeric(eventyr == 2),
-         eventyr5 = as.numeric(eventyr == 3),
-         eventyr6 = as.numeric(eventyr == 4),
-         eventyr7 = as.numeric(eventyr == 5)) %>%
-  #only need dummies for treat 1 since estimating model 1
-  mutate(treat1_eventyr0 = treat1*eventyr0,
-         treat1_eventyr1 = treat1*eventyr1,
-         treat1_eventyr2 = treat1*eventyr2,
-         treat1_eventyr3 = treat1*eventyr3,
-         treat1_eventyr4 = treat1*eventyr4,
-         treat1_eventyr5 = treat1*eventyr5,
-         treat1_eventyr6 = treat1*eventyr6,
-         treat1_eventyr7 = treat1*eventyr7) 
-
-evt1_var <- names(q3_yr)[grep("treat1_e", names(q3_yr))]
-  #q3_yr %>%
-  #select(starts_with("treat1_e")) %>%
-  #colnames()
-#unsure why i'm doing this
-evt1_var <- setdiff(evt1_var, "treat1_eventyr2")
-  
-evt_control <- c("other", "black", "age2", "age3", "high", "racemiss", 
-                  "hispanic", "hispanicmiss", "reform", "a_urate_st", 
-                  "threshpreg", "as_factor(eventyr)", "as_factor(parvar)")
-    
-q3_yr_reg <- felm(as.formula(
-  paste("y_lowbirth ~ ",
-        paste(evt1_var, collapse = " + "), "+",
-        paste(evt_control, collapse = " + "), "+",
-        paste(fe_varlist, collapse = " + "), 
-        "| stateres | 0 | stateres", sep = "")), 
-  data = q3_yr, weights = q3_yr$cellnum)
-
-
-```
-## Plot Figure 3a
-```{r, warning = FALSE}
-df.plot <- as.data.frame(matrix(ncol = 2, nrow = 8))
-names(df.plot) <- c("eyear", "lowbirth2_a")
-df.plot$eyear <- 1991:1998
-df.plot$lowbirth2_a[1:2] <- summary(q3_yr_reg)$coefficients[1:2,1]
-df.plot$lowbirth2_a[3] <- 0
-df.plot$lowbirth2_a[4:8] <- summary(q3_yr_reg)$coefficients[3:7,1]
-
-df.plot %>%
-  ggplot()+
-  geom_line(mapping = aes(x = eyear, y = lowbirth2_a)) +
-  geom_point(mapping = aes(x = eyear, y = lowbirth2_a)) +
-  geom_vline(xintercept = 1993) +
-  geom_hline(yintercept = 0) +
-  labs(x = "Effective tax year", y = "Fraction LBW (*100)", 
-       title = "Estimates for Parity 2+ vs Parity 1")
-
-```
-
-**4h(ii).**
-The plot shows that there no pretrend (i.e. quite flat), indicating that there is no violation of the parallel trends assumption for model 1.
 
