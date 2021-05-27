@@ -43,7 +43,8 @@ There are 3 possible violations:
 * differential reporting of outcomes across groups
   + e.g. people randomized into opportunity to apply for Medicaid (win lottery, this is the treatment group) may tend to report their health care usage more than those who lose the lottery
 
-	In this context, the line between differential participating and differential reporting is a blurry (i.e. pretty much the same thing), per office hours with Prof. Deshpande.
+
+In this context, the line between differential participating and differential reporting is blurry (i.e. pretty much the same thing), per office hours with Prof. Deshpande.
 
 
 **(2b)**
