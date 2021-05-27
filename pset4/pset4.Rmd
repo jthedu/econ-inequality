@@ -45,11 +45,13 @@ There are 3 possible violations:
 
 	In this context, the line between differential participating and differential reporting is a blurry (i.e. pretty much the same thing), per office hours with Prof. Deshpande.
 
+
 **(2b)**
 
 To ensure that the lottery indeed randomly selected people, Finkelstein et al. verified the selection process with independent computer simulations within sampling error (pg. 1074). They also demonstrated that this selection procedure created survey samples with a balance of treatment and control traits (pg. 1074) – essentially a covariate balance test.
 
 They also looked to address potential differential participation in experiment, as reflected by response rates. They used a covariate balance test for those who participated, looking at the treatment-control balance for three different samples (the hospital/admin data sample, credit report sample, survey data sample) in Table II. They found that the estimated difference in response rates is quite small. Also, in each of the three samples, they couldn’t reject the null of treatment-control balance on the lottery list variables, the pre randomization measures, or combined set of variables (pg. 1076). This indicates that differential participation in experiment doesn’t seem to be an issue here. 
+
 
 **(2c)**
 
@@ -57,9 +59,11 @@ Differential reporting, when non-random, could lead to biased estimates of the e
 
 Also, in this context, we’re using administrative data and credit/survey data. There shouldn’t be an issue with differential reporting in the admin data as we can see everybody’s outcomes. There could be a bigger problem with differential reporting (when it’s non-random, e.g. lottery winners report less than lottery losers) if we were solely reliant on credit/survey data, where we don’t see everybody’s outcomes – but luckily, we have admin data as well.
 
+
 **(2d)**
 
 In this case, imperfect take-up is not a threat to validity (i.e. does not lead to biased estimates) because we can observe outcomes with our administrative data. Unlike the RAND experiment, where researchers had no way to know the outcomes of people who dropped out (and thus imperfect take-up did pose a threat to validity and produce downward-biased estimates), we can collect admin data on everyone’s outcomes in the OHIE context. Our estimates of the effect of Medicaid on outcomes will just be a local average treatment effect (LATE), estimated off a particular group of people who comply. The first stage estimate is just smaller.
+
 
 **(2e)**
 
@@ -70,21 +74,66 @@ Other violations of the exclusion restriction considered is the differential tre
 **(3a)**
 
 * structural: 
-$$Y_{ihj} = \pi_0 + \pi_1(Insurance_{ih}) + X_{ih}\pi_2 + V_{ih}\pi_3 + \upsilon_{ihj}$$ 
+
+$$y_{ihj} = \pi_0 + \pi_1Insurance_{ih} + X_{ih}\pi_2 + V_{ih}\pi_3 + \upsilon_{ihj}$$
+
+* first-stage:  
+
+$$Insurance_{ih} = \delta_0 + \delta_1Lottery_{h} + X_{ih}\delta_2 + V_{ih}\delta_3 + \mu_{ihj}$$
 
 
+* reduced form:
+
+$$y_{ihj} = \beta_0 + \beta_1(Lottery_{h}) + X_{ih}\beta_2 + V_{ih}\beta_3 + \varepsilon_{ihj}$$
+
+There is ambiguity on the correct endogenous variable as we don’t know through which channels Medicaid affects the outcome. If being on Medicaid has a cumulative effect, we’d want to use months on Medicaid as the endogenous variable. If the only thing that matters for outcomes now is if I’m on Medicaid now, maybe we use “on Medicaid at end of study” as the endogenous variable. If I think ever being on Medicaid will affect me permanently, than I use that as the endogenous variable. 
+
+We should note also that the differing definitions of endogenous variables can give bounds for the LATE estimate of Medicaid. Using “on Medicaid at end of study” gives a lower bound on the 1st stage estimate – and thus an upper bound on the LATE estimate – while “ever being on Medicaid during study” gives a lower bound on the LATE estimate.
 
 
+**(3b)**
 
-The structural equation is: 
+$X_{ih}$ are the set of covariates that are correlated with treatment probability (and potentially with the outcome). They include household size dummies, survey wave dummies, and the interactions between survey wave dummies & household size dummies. **They must be controlled for to give an unbiased estimate of $\beta_1$,** which is the main coefficient of interest and is ultimately used to describe the relationship between winning the lottery and the outcome. Random assignment is conditional on the number of family members on the lottery list (since individuals who win are disproportionately drawn from larger households). Also, the fraction of treatment individuals varies across the 7 survey waves, so we must include survey wave as a control.  
 
-$$Y_{ipjst} = \beta_0 + \beta_1(Income_{ipjst}) + \varepsilon_{ipjst}$$ 
-where $i$ is the individual. The other subscripts will be discussed later.
+We also include **other covariates $V_{ih}$ to improve power** by accounting for chance differences in variables between treatment and control groups. These aren’t needed for an unbiased $\beta_1$ estimate, but they help with precision. 
 
-## Question 4d
+Note: $\beta_1$ itself gives the average difference in (adjusted) means between the treatment group (the lottery winners) and the control group (those not selected by the lottery); it is the impact of being able to apply for Medicaid through the lottery.
 
-The **"reduced-form" equation** is: 
-$$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gamma_p + \eta_s + \delta_t + \phi_j + \varepsilon_{pjst}$$ 
+
+**(3c)**
+
+The first-stage estimate for “ever on Medicaid” is 0.256, indicating that winning the lottery is associated with a 25.6% increase in the probability of having insurance (specifically Medicaid) during the study period. It is much less than 1 because not all lottery winners became Medicaid participants (only 60% of winners sent in the paperwork to enroll in program, and only 50% of that group actually qualified – resulting in 30% of lottery winners actually receiving Medicaid). 
+
+
+**(3d)**
+
+OHIE’s population of interest is able-bodied uninsured adults below 100% of the federal poverty line who express interest in insurance coverage. In this study, the overall lottery population is older, whiter, and in worse-health than the general low-income, uninsured adult US population. Relative to the overall lottery population, the study’s compliers are even older, “more likely white, in worse health, and in lower socioeconomic status” (p. 1078). Thus, this makes us quite skeptical about extrapolating results to populations like children and pregnant women, who are quite different from OHIE’s complier population.
+
+We are less skeptical about extrapolating OHIE’s results to the ACA because the ACA’s target is low-income adults. OHIE gives a pretty good sense of what the ACA expansions are going to do for low-income adults, though we should be careful since OHIE’s lottery **and** complier population is whiter, older, and in worse health than the overall low-income adult population targeted by the ACA.
+
+
+# Question 4
+
+**(4a)**
+
+*part i.*
+
+Ever being on Medicaid is associated with a 2.1 percentage point increase in the probability of having a hospital admission (making the overall probability 30%), an 8.8 percentage point (overall 15%) increase in the probability of taking any prescription drugs, and a 21 percentage point (overall 35%) increase in the probability of having an outpatient visit. They couldn’t reject the null of no change in emergency room utilization, but the confidence intervals allow for substantial effects in either direction (i.e. ER visits may decrease or increase due to being on Medicaid). In addition, insurance is associated with 0.3 standard deviation increase in reported compliance with recommended preventive care such as mammograms and cholesterol monitoring. 
+
+*part ii.*
+
+Ever being on Medicaid results in decreased exposure to medical liabilities and out-of-pocket medical expenses, including a 6.4 percentage point decline in the probability of having an unpaid medical bill sent to a collections agency (making the overall probability 25%) and a 20 percentage point (overall 35%) decline in having any out-of-pocket medical expenditures. Because much medical debt is never paid, expanded coverage appears to affect (specifically, reduce) the financial strain on the newly insured and their medical providers (or whomever they pass the costs on to).
+
+*part iii.*
+
+Ever being on Medicaid is associated with improvements across the board in measures of self-reported physical and mental health, averaging a 0.2 standard deviation improvement. This improvement seems to partly reflect a general sense of improved well-being. A year after random assignment, Medicaid is associated with a 32% increase in self-reported overall happiness. 
+
+
+**(4b)**
+
+I think which article headline you find compelling depends on which results you’re looking at. The NPR article discussing Medicaid’s big effects on people’s lives seems more correct when focusing on the QJE 2012 paper (the one we read for this pset). In (4a), we see that ever being on Medicaid in OHIE decreases financial strain and increases self-reported physical and mental health alongside healthcare utilization. This jives with what we heard in class, though other studies show that Medicaid had no statistically significant effect on physical health. Additionally, Finkelstein et al. 2015 & Finkelstein et al. 2017 show that Medicaid value to recipients is substantially lower than Medicaid spending due to existing charity care and bad debt. The low-income insured have substantial implicit insurance even without Medicaid. This is probably where the Washington Post article headline came from. 
+
+Overall, I’d still say that the NPR headline seems more accurate, just because we spent the most time with the QJE 2012 paper and I understand the changes in people’s lives that Medicaid can bring about – but the Washington Post headline is still valid. 
 
 
 # Question 5: Data exercise
@@ -92,6 +141,7 @@ $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gam
 Just so you know, the dummy syntax for the `felm` command is as follows:
 
 `felm(causal relation of interest | fixed effects | IVs | clusters, data = your_data)`
+
 
 ## Question 5a & 5b
 ```{r, message = FALSE}
@@ -121,11 +171,12 @@ t.test(q4_treatonly$returned_12m, q4_controlonly$returned_12m)
 
 
 **(5b)** 
+
 The response rates are pretty similar across the control and treatment groups (41.5% and 39.9%, respectively). Given this closeness, I'd say the difference in survey response rates isn't concerning.
 
 This is supported by the t-test. We see that although we reject the null (i.e. there is a significant difference between the means), the 95% confidence interval contains values quite close to 0. Thus, though there is evidence of differential response rates, the response rates are close enough (much smaller than in the RAND experiment) that it doesn't seem like an existential threat to our experiment. Discussion of Table II in the paper on pg. 1075-76 lends further credence to the idea that this small difference in response rates doesn't disqualify the experiment's results.
 
-## Question 5c
+## Question 5c(i): 1st stage eqn by OLS
 ```{r}
 q4 <- q4 %>%
   mutate(
@@ -178,7 +229,7 @@ stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end,
 ```
 
 
-## Question 5d(i)
+## Question 5d(i): Structural eqn by 2SLS
 ```{r}
 #healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them
 # note: if_else command preserves NAs
@@ -257,7 +308,7 @@ q4_struct_ols_h <- felm(as.formula(
  # summary("robust")
 ```
 
-## Question 5d(ii)
+## Question 5d(ii): Intent-to-treat eqn by OLS
 ```{r}
 q4_itt_ols_a <- felm(as.formula(
   paste("rx_any_12m ~ treatment + ",
@@ -349,5 +400,13 @@ stargazer(q4_itt_ols_a, q4_itt_ols_b, q4_itt_ols_c, q4_itt_ols_d, q4_itt_ols_e,
 ```
 
 
+## Question 5d(iv)
 
+For equation (3), **$\pi_1$ represents the LATE of insurance** – it is the causal impact of insurance on the outcome variable among the group of individuals who get on Medicaid through winning the lottery and who wouldn’t get Medicaid without winning the lottery (i.e. the complier group). 
+
+Ex: For the compliers, insurance is associated with an 8.78% increase in the probability of currently taking any prescription meds.  
+
+For equation (1), $\beta_1$ represents the causal impact of being able to apply for Medicaid through the lottery (i.e. winning the lottery) on the outcome variable.
+
+Ex: Winning the lottery is associated with an 2.52% increase in the probability of currently taking any prescription meds.
 
