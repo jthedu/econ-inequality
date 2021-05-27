@@ -71,6 +71,9 @@ In this case, $\varphi_1$ represents the difference in the outcome before & afte
 
 ## Question 5: Data exercise
 
+Just so you know, the dummy syntax for the `felm` command is as follows:
+
+`felm(causal relation of interest | fixed effects | IVs | clusters, data = your_data)`
 
 ```{r, message = FALSE}
 q4 <- read_csv("./dataexercise_pset4/pset_experiment_data.csv")
@@ -95,14 +98,6 @@ q4 %>%
 
 ## Question 5c
 ```{r}
-## Delete this when knit
-q4 %>%
-  #distinct(ohp_all_mo_survey)
-  mutate(try = parse_number(ohp_all_mo_survey)) %>%
-  select(try, ohp_all_mo_survey) %>%
-  distinct() # this works!
-
-
 q4 <- q4 %>%
   mutate(
     ohp_all_mo_survey = parse_number(ohp_all_mo_survey),
@@ -114,7 +109,8 @@ dummies_q4 <- q4 %>%
 
 # drop NAs for weights to 
 q4_test <- q4 %>%
-  drop_na(weight_12m)
+  drop_na(weight_12m) %>%
+  filter(sample_12m_resp == "12m mail survey responder")
 
 ## does including the fixed effs ("ddd" var) include the regular HH size dummy var & survey wave dummy var? that is, fixed effs covers the interactions btwn these dummy vars & the dummy vars themselves? YES
 
@@ -139,7 +135,7 @@ q4_1ststage_ols_end <- felm(as.formula(
         "| 0 | 0 | household_id", sep = "")), 
   data = q4_test, weights = q4_test$weight_12m)
 
-#q4_1ststage_ols_ever %>%
+#q4_1ststage_ols_end %>%
  # summary("robust")
 
 ```
@@ -148,29 +144,183 @@ q4_1ststage_ols_end <- felm(as.formula(
 ## Question 5c(ii): 1st stage OLS results
 ```{r table1, results = "asis"}
 stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end, type = "latex", 
-          keep = "treament", 
-          title = "Question 5c(iii)", 
+          keep = "treatment", 
+          title = "Question 5c(ii)", 
           dep.var.labels =c("Ever on Medicaid", "Number of months on Medicaid", "On Medicaid at end"), 
           omit.stat =c("f","rsq","adj.rsq","ser"),
- #         covariate.labels =c("Ever on Medicaid", #"Parity=2 x After",
- #                             "Parity3+ x After"),
           dep.var.caption = "OLS 1st stage",
           digits = 4)
 ```
 
 
-## Question 5d
-```{r, message = FALSE, eval = FALSE}
+## Question 5d(i)
+```{r}
 #healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them, but might need drop_na
-q4 %>%
-  
+
+q4 <- q4 %>%
   mutate(
-    rx_any_12m = if_else(rx_any_12m == "Yes", 1, 0), # has NA 
-    doc_any_12m = if_else(doc_any_12m == "Yes", 1, 0), # has NA  
-    er_any_12m = if_else(er_any_12m == "Yes", 1, 0), # has NA  
-    hosp_any_12m = if_else(hosp_any_12m == "Yes", 1, 0), # has NA  
-    cost_any_oop_12m = if_else(cost_any_oop_12m == "Yes", 1, 0), # has NA  
-    cost_any_owe_12m = if_else(cost_any_owe_12m == "Yes", 1, 0), # has NA  
+    rx_any_12m = if_else(rx_any_12m == "Yes", 1, 0), 
+    doc_any_12m = if_else(doc_any_12m == "Yes", 1, 0),   
+    er_any_12m = if_else(er_any_12m == "Yes", 1, 0), 
+    hosp_any_12m = if_else(hosp_any_12m == "Yes", 1, 0),   
+    cost_any_oop_12m = if_else(cost_any_oop_12m == "Yes", 1, 0),   
+    cost_any_owe_12m = if_else(cost_any_owe_12m == "Yes", 1, 0),  
     ) 
+
+# drop NAs for weights too & select only survey data 
+# (have to rerun same command as before since we changed q4 above)
+q4_test_1 <- q4 %>%
+  #drop_na(weight_12m) %>%
+  filter(sample_12m_resp == "12m mail survey responder")
+
+q4_struct_ols_a <- felm(as.formula(
+  paste("rx_any_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_a <- felm(as.formula(
+  paste("rx_any_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_b <- felm(as.formula(
+  paste("doc_any_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_c <- felm(as.formula(
+  paste("er_any_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_d <- felm(as.formula(
+  paste("hosp_any_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_e <- felm(as.formula(
+  paste("cost_any_oop_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_f <- felm(as.formula(
+  paste("cost_any_owe_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_g <- felm(as.formula(
+  paste("health_notpoor_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_h <- felm(as.formula(
+  paste("notbaddays_tot_12m ~ ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_struct_ols_f %>%
+  summary("robust")
+
 ```
+
+## Question 5d(ii)
+```{r}
+q4_itt_ols_a <- felm(as.formula(
+  paste("rx_any_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_b <- felm(as.formula(
+  paste("doc_any_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_c <- felm(as.formula(
+  paste("er_any_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_d <- felm(as.formula(
+  paste("hosp_any_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_e <- felm(as.formula(
+  paste("cost_any_oop_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_f <- felm(as.formula(
+  paste("cost_any_owe_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_g <- felm(as.formula(
+  paste("health_notpoor_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+q4_itt_ols_h <- felm(as.formula(
+  paste("notbaddays_tot_12m ~ treatment + ",
+        paste(dummies_q4, collapse = " + "), 
+        "| 0 | 0 | household_id", sep = "")),
+  data = q4_test_1, weights = q4_test_1$weight_12m)
+
+#q4_itt_ols_a %>%
+ # summary("robust")
+```
+
+,  q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_d, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_d
+
+
+
+## Question 5d(iii): $\hat{\pi}$ Coefficients
+```{r tablepi, results = "asis"}
+stargazer(q4_struct_ols_a, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_e, q4_struct_ols_f, q4_struct_ols_g, q4_struct_ols_h,
+          type = "latex", 
+          omit = c(dummies_q4, "Constant"), 
+          title = "Question 5d(iii): Pi Estimates (Structural Eqn)", 
+          covariate.labels = "Ever on Medicaid",
+          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", "health", "notbad"), 
+          omit.stat =c("f","rsq","adj.rsq","ser"),
+          dep.var.caption = "",
+          digits = 4, 
+         font.size = "small",
+         column.sep.width = "0pt")
+```
+
+## Question 5d(iii): $\hat{\beta}$ coefficients
+```{r tablebeta, results = "asis"}
+stargazer(q4_itt_ols_a, q4_itt_ols_b, q4_itt_ols_c, q4_itt_ols_d, q4_itt_ols_e, q4_itt_ols_f, q4_itt_ols_g, q4_itt_ols_h,
+          type = "latex", 
+          omit = c(dummies_q4, "Constant"), 
+          title = "Question 5d(iii): Beta Estimates (ITT Equation)", 
+          covariate.labels = "Ever on Medicaid",
+          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", "health", "notbad"), 
+          omit.stat =c("f","rsq","adj.rsq","ser"),
+          dep.var.caption = "",
+          digits = 4, 
+         font.size = "small",
+         column.sep.width = "0pt")
+
+```
+
+
+
 
