@@ -2,7 +2,9 @@
 title: "Inequality Pset 4"
 author: "Julia Du"
 date: "`r lubridate::today()`"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: TRUE
 ---
 
 
@@ -17,64 +19,81 @@ library(lfe)
 theme_set(theme_minimal())
 ```
 
-## Question 4a
+# Question 1
 
-The causal relationship of interest is the effect of income (where your income is either increased by the changed EITC) on infant health outcomes, specifically infant birth weight. 
+The research question is the effect of expanding access to public health insurance (Medicaid) on the health care use, financial strain, and health of low-income adults. 
+
+It’s interesting because the estimates of public health insurance apply to able-bodied uninsured adults below 100% of the poverty line, which is a population of significant policy interest. It’s also interesting there hasn’t been a lot of research on benefits of health insurance outside health care utilization. This question lets us look at the other, “risk-spreading” benefits of health insurance, like less financial strain or less emotional stress/worry. Finally, it’s interesting because the Oregon experiment is a randomized control trial (RCT), making it the gold standard for internal validity. If we find in our data something contrary to our expectations, RCTs make us confident enough in our experimental design that we don’t chalk up surprises to wrong empirical specifications. 
+
+# Question 2
+**(2a)**
+
+The identifying assumption is that, in the absence of treatment, the treatment group would’ve had the same distribution of outcomes as the control group.
+
+There are 3 possible violations: 
+
+* nonrandom assignment (i.e. random assignment is done incorrectly)
+  + i.e. that the assignment of the ability to apply for Medicaid (i.e. lottery results) were randomized & that the treatment/control individuals in the subsamples were not differentially selected from the full sample 
+  + test: covariate balance test
+
+* differential participation in experiment across treatment groups
+  + i.e. attrition rates or people’s decision to drop out of experiment (i.e. not respond to survey) is a function of their assigned treatment group. in other words, the decision to drop out is NOT random
+  + test: covariate balance test among those who participated, looking @ participation rates across treatment groups
+
+* differential reporting of outcomes across groups
+  + e.g. people randomized into opportunity to apply for Medicaid (win lottery, this is the treatment group) may tend to report their health care usage more than those who lose the lottery
+
+	In this context, the line between differential participating and differential reporting is a blurry (i.e. pretty much the same thing), per office hours with Prof. Deshpande.
+
+**(2b)**
+
+To ensure that the lottery indeed randomly selected people, Finkelstein et al. verified the selection process with independent computer simulations within sampling error (pg. 1074). They also demonstrated that this selection procedure created survey samples with a balance of treatment and control traits (pg. 1074) – essentially a covariate balance test.
+
+They also looked to address potential differential participation in experiment, as reflected by response rates. They used a covariate balance test for those who participated, looking at the treatment-control balance for three different samples (the hospital/admin data sample, credit report sample, survey data sample) in Table II. They found that the estimated difference in response rates is quite small. Also, in each of the three samples, they couldn’t reject the null of treatment-control balance on the lottery list variables, the pre randomization measures, or combined set of variables (pg. 1076). This indicates that differential participation in experiment doesn’t seem to be an issue here. 
+
+**(2c)**
+
+Differential reporting, when non-random, could lead to biased estimates of the effect of Medicaid on outcomes (healthcare use, financial strain, health), thereby presenting a threat to validity. For example, people randomized into treatment (i.e. those who are selected to have the chance to apply for Medicaid by winning the lottery) may tend to fill out the health surveys more than those who lose the lottery (recall that in this experiment, there isn’t really a distinction between differential participation and reporting). We’ll see in Question (5b) that lottery winners (the treated) actually do respond to surveys a bit less than lottery losers (control), but we aren’t that concerned given how small the difference is (more discussion in 5b). 
+
+Also, in this context, we’re using administrative data and credit/survey data. There shouldn’t be an issue with differential reporting in the admin data as we can see everybody’s outcomes. There could be a bigger problem with differential reporting (when it’s non-random, e.g. lottery winners report less than lottery losers) if we were solely reliant on credit/survey data, where we don’t see everybody’s outcomes – but luckily, we have admin data as well.
+
+**(2d)**
+
+In this case, imperfect take-up is not a threat to validity (i.e. does not lead to biased estimates) because we can observe outcomes with our administrative data. Unlike the RAND experiment, where researchers had no way to know the outcomes of people who dropped out (and thus imperfect take-up did pose a threat to validity and produce downward-biased estimates), we can collect admin data on everyone’s outcomes in the OHIE context. Our estimates of the effect of Medicaid on outcomes will just be a local average treatment effect (LATE), estimated off a particular group of people who comply. The first stage estimate is just smaller.
+
+**(2e)**
+
+Other violations of the exclusion restriction considered is the differential treatment of participants following random assignment. We have to make sure that the control and treatment groups aren’t differentially affected by something else after random assignment, so that the only way winning the lottery can affect the outcome variables is through expanded Medicaid access. While it’s hard to test for the direct effect of winning the lottery, the researchers do look at enrollment in other public programs. The idea is that if treated participants enroll in TANF or SNAP more than the control after winning the lottery, then the observed effect on outcome cannot be wholly chalked up to Medicaid access (but to Medicaid **and** these other programs). Thus, we want to make sure that winning the lottery doesn’t lead to differential enrollment in public programs. We find winning the lottery has no effect on TANF enrollment, but SNAP enrollment increasing by a significant 2pp among winners. However, this is small enough that we can probably ignore it and conclude the exclusion restriction isn’t being violated.
+
+# Question 3
+
+**(3a)**
+
+* structural: 
+$$Y_{ihj} = \pi_0 + \pi_1(Insurance_{ih}) + X_{ih}\pi_2 + V_{ih}\pi_3 + \upsilon_{ihj}$$ 
+
+
+
+
 
 The structural equation is: 
 
 $$Y_{ipjst} = \beta_0 + \beta_1(Income_{ipjst}) + \varepsilon_{ipjst}$$ 
 where $i$ is the individual. The other subscripts will be discussed later.
 
-## Question 4b
-
-If we estimate the structural equation in cross-sectional data, then our estimate of the causal parameter of interest $\beta_1$ will suffer from Omitted Variable Bias (OVB), as income is endogeneous because it is correlated with unobserved health care inputs. In general, those with better health tend to have higher income.
-
-Recall: 
-
-$$ OVB =  \beta_1^{OLS} - \beta_1 \\ = \frac{cov(Income_{ipjst}, \varepsilon_{ipjst})}{var(Income_{ipjst})}$$
-
-So, the direction of bias depends on the sign of the covariance. In this case, it's likely our estimate is upward-biased since income tends to be positively correlated with unobserved health. 
-
-## Question 4c 
-**4c(i).** 
-I have included a graph of this a few pages earlier.
-
-The 1st diff-in-diff is:
-$$\bar Y_{2plus, after} - \bar Y_{1, after}$$
-This is the difference in infant health between families with 2 or more kids and with families with just one kid after the EITC expansion occurred.
-
-The 2nd diff-in-diff is:
-$$\bar Y_{2plus, before} - \bar Y_{1, before}$$
-
-This is the difference in infant health between families with 2 or more kids and with families with just one kid before the EITC expansion occurred.
-
-**4c(ii).** The key identifying assumption is the parallel assumption, i.e. that absent the EITC expansion policy change (OBRA93), both families with one child and families with two or more children follow parallel trends over time in their infant health outcomes.
-
-**4c(iii).** One possible violation could be that there is a macro shock occurs sometime before the EITC expansion, and the shock affects the two family types differently. For example, maybe there's another policy that seeks to discourage families from having more children and thus gives HHs with only 1 kid bigger subsidies. In that case, families with 1 kid and those with 2 or more would be on different trends. 
-
 ## Question 4d
 
 The **"reduced-form" equation** is: 
 $$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \beta X_{st} +  \gamma_p + \eta_s + \delta_t + \phi_j + \varepsilon_{pjst}$$ 
 
-where $Y_{pjst}$ is a measure of infant health (specifically, the fraction of low birth weight infants multiplied by 100) for the cell defined by parity $p$, demographic group $j$, in state $s$ for effective tax year $t$. $\gamma_p$ is a set of dummy variables for birth order, $\eta_s$ is a set of dummy variables for state of residence, $\delta_t$ is a set of dummy variables for effective tax year. We also include  fixed effects for demographic group $\phi_j$. $X_{st}$ includes controls for unemployment rate, welfare reform and Medicaid or SCHIP eligibility. $a$ is the intercept, representing the baseline infant health (i.e. for families with a first-order birth before the policy expansion). $\varepsilon_{pjst}$ represents the unobserved variation. 
 
-$After$ is a dummy variable equaling one for effective tax years 1994 through 1998, $Parity2plus_p$ is a dummy variable indicating if a birth is second or higher order. Their interaction lets us make use of DD strategy in trying to suss out the difference in infant health outcomes before and after the EITC policy change, while also factoring in the difference between the treated and control groups (families with 2nd-order or higher births and families with 1st-order birth, respectively)
-
-$\delta$ is our coefficient of interest, i.e. the DD estimate. It shows the effect of the treatment (i.e. policy expansion) on the treated's (in this case, families whose birth is 2nd-order or higher) infant birth weight. 
-
-## Question 4e
-Alternative specification to equation: 
-$$Y_{pjst} = \alpha + \delta After_t \times Parity2plus_p + \varphi_1 After_t + \varphi_2 Parity2plus_p \\ + \beta \tilde{X}_{pjst}  + \varepsilon_{pjst}$$
-In this case, $\varphi_1$ represents the difference in the outcome before & after the EITC policy change, while $\varphi_2$ represents the difference between the treated and control groups.
-
-## Question 5: Data exercise
+# Question 5: Data exercise
 
 Just so you know, the dummy syntax for the `felm` command is as follows:
 
 `felm(causal relation of interest | fixed effects | IVs | clusters, data = your_data)`
 
+## Question 5a & 5b
 ```{r, message = FALSE}
 q4 <- read_csv("./dataexercise_pset4/pset_experiment_data.csv")
 
@@ -84,17 +103,27 @@ q4 <- q4 %>%
   mutate(
     treatment = if_else(treatment == "Selected", 1, 0),
     returned_12m = if_else(returned_12m == "Yes", 1, 0)) 
-  
+
+# calculate avg survey response rate 
 q4 %>%
   drop_na(returned_12m) %>% # CAN I DROP NA 
   group_by(treatment) %>%
   summarize(response_rate = mean(returned_12m))
 
-q4 %>%
-  count(returned_12m)
+# t-test to see if difference in rate is sig
+q4_treatonly <- q4 %>%
+  filter(treatment == 1)
+q4_controlonly <- q4 %>%
+  filter(treatment == 0)
+
+t.test(q4_treatonly$returned_12m, q4_controlonly$returned_12m)
 ``` 
 
-(5b) The response rates are pretty similar across the control and treatment groups (41.5% and 39.9%, respectively). Given this closeness, I'd say there isn't evidence of differential survey response rates. 
+
+**(5b)** 
+The response rates are pretty similar across the control and treatment groups (41.5% and 39.9%, respectively). Given this closeness, I'd say the difference in survey response rates isn't concerning.
+
+This is supported by the t-test. We see that although we reject the null (i.e. there is a significant difference between the means), the 95% confidence interval contains values quite close to 0. Thus, though there is evidence of differential response rates, the response rates are close enough (much smaller than in the RAND experiment) that it doesn't seem like an existential threat to our experiment. Discussion of Table II in the paper on pg. 1075-76 lends further credence to the idea that this small difference in response rates doesn't disqualify the experiment's results.
 
 ## Question 5c
 ```{r}
@@ -111,11 +140,6 @@ dummies_q4 <- q4 %>%
 q4_test <- q4 %>%
   drop_na(weight_12m) %>%
   filter(sample_12m_resp == "12m mail survey responder")
-
-## does including the fixed effs ("ddd" var) include the regular HH size dummy var & survey wave dummy var? that is, fixed effs covers the interactions btwn these dummy vars & the dummy vars themselves? YES
-
-# fyi: if put in fixed effs, you might be creating the dummies & interactions - but we already have created them
-# column 6, table iii
 
 q4_1ststage_ols_ever <- felm(as.formula(
   paste("ohp_all_ever_survey ~  treatment", "+",
@@ -137,16 +161,17 @@ q4_1ststage_ols_end <- felm(as.formula(
 
 #q4_1ststage_ols_end %>%
  # summary("robust")
-
 ```
 
 
 ## Question 5c(ii): 1st stage OLS results
 ```{r table1, results = "asis"}
-stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end, type = "latex", 
+stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end, 
+          type = "latex", 
           keep = "treatment", 
           title = "Question 5c(ii)", 
-          dep.var.labels =c("Ever on Medicaid", "Number of months on Medicaid", "On Medicaid at end"), 
+          dep.var.labels =c("Ever on Medicaid", "Number of months on Medicaid", 
+                            "On Medicaid at end"), 
           omit.stat =c("f","rsq","adj.rsq","ser"),
           dep.var.caption = "OLS 1st stage",
           digits = 4)
@@ -155,7 +180,8 @@ stargazer(q4_1ststage_ols_ever, q4_1ststage_ols_mo, q4_1ststage_ols_end, type = 
 
 ## Question 5d(i)
 ```{r}
-#healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them, but might need drop_na
+#healthnotpoor has 1, 0, & NA. notbaddays is dbl w/ NAs - don't need if_else for them
+# note: if_else command preserves NAs
 
 q4 <- q4 %>%
   mutate(
@@ -227,9 +253,8 @@ q4_struct_ols_h <- felm(as.formula(
         "| 0 | (ohp_all_ever_survey ~ treatment) | household_id", sep = "")),
   data = q4_test_1, weights = q4_test_1$weight_12m)
 
-q4_struct_ols_f %>%
-  summary("robust")
-
+#q4_struct_ols_f %>%
+ # summary("robust")
 ```
 
 ## Question 5d(ii)
@@ -286,18 +311,18 @@ q4_itt_ols_h <- felm(as.formula(
  # summary("robust")
 ```
 
-,  q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_d, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_d
-
-
+For Question 5d(iii), I created 2 separate tables (one of $\hat{\pi}$ estimates for the structural equation, one of $\hat{\beta}$ estimates for the ITT equation) since combining all 16 regressions into 1 table produces something illegible. 
 
 ## Question 5d(iii): $\hat{\pi}$ Coefficients
 ```{r tablepi, results = "asis"}
-stargazer(q4_struct_ols_a, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4_struct_ols_e, q4_struct_ols_f, q4_struct_ols_g, q4_struct_ols_h,
+stargazer(q4_struct_ols_a, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, 
+          q4_struct_ols_e, q4_struct_ols_f, q4_struct_ols_g, q4_struct_ols_h,
           type = "latex", 
           omit = c(dummies_q4, "Constant"), 
           title = "Question 5d(iii): Pi Estimates (Structural Eqn)", 
           covariate.labels = "Ever on Medicaid",
-          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", "health", "notbad"), 
+          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", 
+                             "health", "notbad"), 
           omit.stat =c("f","rsq","adj.rsq","ser"),
           dep.var.caption = "",
           digits = 4, 
@@ -307,12 +332,14 @@ stargazer(q4_struct_ols_a, q4_struct_ols_b, q4_struct_ols_c, q4_struct_ols_d, q4
 
 ## Question 5d(iii): $\hat{\beta}$ coefficients
 ```{r tablebeta, results = "asis"}
-stargazer(q4_itt_ols_a, q4_itt_ols_b, q4_itt_ols_c, q4_itt_ols_d, q4_itt_ols_e, q4_itt_ols_f, q4_itt_ols_g, q4_itt_ols_h,
+stargazer(q4_itt_ols_a, q4_itt_ols_b, q4_itt_ols_c, q4_itt_ols_d, q4_itt_ols_e, 
+          q4_itt_ols_f, q4_itt_ols_g, q4_itt_ols_h,
           type = "latex", 
           omit = c(dummies_q4, "Constant"), 
           title = "Question 5d(iii): Beta Estimates (ITT Equation)", 
           covariate.labels = "Ever on Medicaid",
-          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", "health", "notbad"), 
+          dep.var.labels = c("rx", "doc", "er", "hosp", "cost oop", "cost owe", 
+                             "health", "notbad"), 
           omit.stat =c("f","rsq","adj.rsq","ser"),
           dep.var.caption = "",
           digits = 4, 
